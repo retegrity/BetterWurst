@@ -34,6 +34,9 @@ public final class TeleportPathFinder
 	public static final double MAX_STEP = 9;
 	
 	private static final int MAX_NODES = 3000;
+	
+	// a search for an unreachable target would otherwise freeze the game
+	private static final long TIME_BUDGET_NANOS = 15_000_000;
 	private static final double AIR_COST = 0.5;
 	private static final double HEURISTIC_WEIGHT = 1.5;
 	
@@ -47,6 +50,9 @@ public final class TeleportPathFinder
 	private final HashMap<Long, Boolean> fitsCache = new HashMap<>();
 	private final HashMap<Long, Boolean> groundCache = new HashMap<>();
 	
+	private boolean searched;
+	private boolean timedOut;
+	
 	public TeleportPathFinder(AABB targetBox, double reach)
 	{
 		this.targetBox = targetBox;
@@ -54,15 +60,74 @@ public final class TeleportPathFinder
 	}
 	
 	/**
+	 * Tries a straight line to the target first, which is enough in most
+	 * arenas, and only searches for a path around obstacles if that fails and
+	 * <code>allowSearch</code> is true.
+	 *
 	 * @return the teleports from the start to the spot to attack from, empty
 	 *         if the target can already be hit from the start, or null if
 	 *         there is no path
 	 */
-	public ArrayList<Vec3> find(Vec3 start)
+	public ArrayList<Vec3> find(Vec3 start, boolean allowSearch)
 	{
 		if(getDistanceLeft(start) <= 0)
 			return new ArrayList<>();
 		
+		ArrayList<Vec3> straight = findStraight(start);
+		if(straight != null || !allowSearch)
+			return straight;
+		
+		searched = true;
+		return search(start);
+	}
+	
+	/**
+	 * Whether {@link #find(Vec3, boolean)} had to search for a path around
+	 * obstacles.
+	 */
+	public boolean hasSearched()
+	{
+		return searched;
+	}
+	
+	/**
+	 * Whether the search ran out of time, so the target might still be
+	 * reachable.
+	 */
+	public boolean hasTimedOut()
+	{
+		return timedOut;
+	}
+	
+	/**
+	 * Teleports in a straight line to a spot right next to the target, on the
+	 * side facing the start.
+	 */
+	private ArrayList<Vec3> findStraight(Vec3 start)
+	{
+		Vec3 center = targetBox.getBottomCenter();
+		Vec3 away = new Vec3(start.x - center.x, 0, start.z - center.z);
+		double length = away.length();
+		Vec3 spot = center;
+		if(length > 1e-4)
+			spot = center.add(away.scale(
+				Math.min(length, targetBox.getXsize() / 2 + 1) / length));
+		
+		if(getDistanceLeft(spot) > 0
+			|| !MC.level.noBlockCollision(player, getBox(spot))
+			|| !canMoveStraight(start, spot))
+			return null;
+		
+		ArrayList<Vec3> teleports = new ArrayList<>();
+		int steps = (int)Math.ceil(start.distanceTo(spot) / MAX_STEP);
+		for(int i = 1; i <= steps; i++)
+			teleports.add(start.lerp(spot, i / (double)steps));
+		
+		return teleports;
+	}
+	
+	private ArrayList<Vec3> search(Vec3 start)
+	{
 		long startKey = BlockPos.containing(start).asLong();
 		HashMap<Long, Double> costs = new HashMap<>();
 		HashMap<Long, Long> cameFrom = new HashMap<>();
@@ -71,8 +136,15 @@ public final class TeleportPathFinder
 		open.add(new Node(startKey, 0, 0));
 		
 		Long goal = null;
+		long deadline = System.nanoTime() + TIME_BUDGET_NANOS;
 		for(int i = 0; i < MAX_NODES && !open.isEmpty(); i++)
 		{
+			if(System.nanoTime() > deadline)
+			{
+				timedOut = true;
+				break;
+			}
+			
 			Node node = open.poll();
 			if(node.cost > costs.get(node.key))
 				continue;
@@ -99,7 +171,7 @@ public final class TeleportPathFinder
 							continue;
 						
 						Vec3 to = Vec3.atBottomCenterOf(next);
-						if(!MC.level.noCollision(player,
+						if(!MC.level.noBlockCollision(player,
 							fromBox.minmax(getBox(to))))
 							continue;
 						
@@ -160,7 +232,7 @@ public final class TeleportPathFinder
 		for(int i = 1; i <= steps; i++)
 		{
 			AABB box = getBox(from.lerp(to, i / (double)steps));
-			if(!MC.level.noCollision(player, prevBox.minmax(box)))
+			if(!MC.level.noBlockCollision(player, prevBox.minmax(box)))
 				return false;
 			
 			prevBox = box;
@@ -199,7 +271,7 @@ public final class TeleportPathFinder
 	private boolean fits(BlockPos pos)
 	{
 		return fitsCache.computeIfAbsent(pos.asLong(), k -> MC.level
-			.noCollision(player, getBox(Vec3.atBottomCenterOf(pos))));
+			.noBlockCollision(player, getBox(Vec3.atBottomCenterOf(pos))));
 	}
 	
 	private boolean isOnGround(BlockPos pos)
@@ -217,7 +289,7 @@ public final class TeleportPathFinder
 		AABB box = player.getDimensions(player.getPose()).makeBoundingBox(pos);
 		AABB below = new AABB(box.minX, box.minY - 0.05, box.minZ, box.maxX,
 			box.minY, box.maxZ);
-		return !MC.level.noCollision(player, below);
+		return !MC.level.noBlockCollision(player, below);
 	}
 	
 	private record Node(long key, double cost, double estimate)

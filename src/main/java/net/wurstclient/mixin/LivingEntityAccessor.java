@@ -20,4 +20,7 @@ public interface LivingEntityAccessor
 	
 	@Accessor("noJumpDelay")
 	int wurst_getNoJumpDelay();
+	
+	@Accessor("attackStrengthTicker")
+	void wurst_setAttackStrengthTicker(int attackStrengthTicker);
 }

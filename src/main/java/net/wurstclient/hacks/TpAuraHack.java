@@ -9,12 +9,14 @@ package net.wurstclient.hacks;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Stream;
 
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.game.ServerboundClientTickEndPacket;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -25,7 +27,9 @@ import net.wurstclient.SearchTags;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.hacks.tpaura.TeleportPathFinder;
+import net.wurstclient.mixin.LivingEntityAccessor;
 import net.wurstclient.settings.AttackSpeedSliderSetting;
+import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.settings.EnumSetting;
 import net.wurstclient.settings.PauseAttackOnContainersSetting;
 import net.wurstclient.settings.SliderSetting;
@@ -46,6 +50,10 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	private static final double PATH_REACH = 3;
 	
 	private final Random random = new Random();
+	private double hitsOwed;
+	
+	// targets without a path, and the tick when to look for one again
+	private final HashMap<Integer, Integer> noPathUntil = new HashMap<>();
 	
 	private final EnumSetting<Mode> mode = new EnumSetting<>("Mode",
 		"\u00a7lNormal\u00a7r mode teleports you next to the target and leaves"
@@ -66,6 +74,46 @@ public final class TpAuraHack extends Hack implements UpdateListener
 			+ "Every 9 blocks of distance take one movement packet there and one"
 			+ " back for each hit.",
 		40, 6, 100, 1, ValueDisplay.INTEGER);
+	
+	private final CheckboxSetting ultraFast = new CheckboxSetting(
+		"Ultra fast mode",
+		"Only works in Path mode.\n\n"
+			+ "Ignores the attack cooldown and hits as often as"
+			+ " \"Ultra fast hits/s\" says, with every hit counting as fully"
+			+ " charged on your side.\n\n"
+			+ "Whether the extra hits do full damage is up to the server."
+			+ " Vanilla servers scale the damage by their own cooldown, which"
+			+ " Wurst can't speed up.\n\n"
+			+ "Every trip takes a few movement packets, so lower the speed or"
+			+ " fight closer if the server kicks you for sending too many"
+			+ " packets.",
+		false);
+	
+	private final SliderSetting ultraFastSpeed =
+		new SliderSetting("Ultra fast hits/s",
+			"How many hits per second Ultra fast mode does. Above 20, it hits"
+				+ " several times per tick.",
+			20, 1, 20, 1, ValueDisplay.INTEGER);
+	
+	private final SliderSetting ultraFastTicks = new SliderSetting(
+		"Ultra fast fake ticks",
+		"How many client ticks Ultra fast mode pretends to have before each"
+			+ " hit, by sending the packets that the game sends at the end of"
+			+ " every tick. This is what Timer does on the server's side, for"
+			+ " servers that count the attack cooldown by these packets.\n\n"
+			+ "\u00a7lAuto\u00a7r sends as many as a full attack cooldown with"
+			+ " the held item takes.",
+		0, 0, 40, 1, ValueDisplay.INTEGER.withLabel(0, "Auto"));
+	
+	private final EnumSetting<FakeTickPackets> fakeTickPackets =
+		new EnumSetting<>("Fake tick packets",
+			"What Ultra fast mode sends for every fake tick.\n\n"
+				+ "\u00a7lTick end\u00a7r - Only the packet that the game sends"
+				+ " at the end of every tick. This is all that Timer sends while"
+				+ " you stand still.\n"
+				+ "\u00a7lTick end + position\u00a7r - Also a movement packet"
+				+ " at your position for each tick.",
+			FakeTickPackets.values(), FakeTickPackets.TICK_END);
 	
 	private final AttackSpeedSliderSetting speed =
 		new AttackSpeedSliderSetting();
@@ -94,6 +142,10 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		addSetting(mode);
 		addSetting(range);
 		addSetting(pathRange);
+		addSetting(ultraFast);
+		addSetting(ultraFastSpeed);
+		addSetting(ultraFastTicks);
+		addSetting(fakeTickPackets);
 		addSetting(speed);
 		addSetting(priority);
 		addSetting(swingHand);
@@ -117,6 +169,8 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		WURST.getHax().triggerBotHack.setEnabled(false);
 		
 		speed.resetTimer();
+		hitsOwed = 0;
+		noPathUntil.clear();
 		EVENTS.add(UpdateListener.class, this);
 	}
 	
@@ -129,6 +183,19 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	@Override
 	public void onUpdate()
 	{
+		if(isUltraFast())
+		{
+			// don't save up hits while there is nothing to hit
+			double hitsPerTick = ultraFastSpeed.getValue() / 20;
+			hitsOwed =
+				Math.min(hitsOwed + hitsPerTick, Math.max(1, hitsPerTick));
+			if(hitsOwed < 1 || pauseOnContainers.shouldPause())
+				return;
+			
+			attackThroughPath();
+			return;
+		}
+		
 		speed.updateTimer();
 		if(!speed.isTimeToAttack())
 			return;
@@ -204,28 +271,83 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		WURST.getHax().autoSwordHack.setSlot(targets.get(0));
 		
 		// check cooldown
-		if(player.getAttackStrengthScale(0) < 1)
+		boolean ultraFast = isUltraFast();
+		if(!ultraFast && player.getAttackStrengthScale(0) < 1)
 			return;
 		
-		if(WURST.getHax().criticalsHack.shouldDelayAttack())
+		if(!ultraFast && WURST.getHax().criticalsHack.shouldDelayAttack())
 			return;
 		
 		if(AttackUtils.shouldDelayAttack())
 			return;
 		
+		int hits = ultraFast ? (int)hitsOwed : 1;
 		Vec3 home = player.position();
+		int tick = player.tickCount;
+		if(noPathUntil.size() > 100)
+			noPathUntil.clear();
+		
+		// only one slow search around obstacles per tick
+		boolean searched = false;
 		for(Entity target : targets)
 		{
-			ArrayList<Vec3> path =
-				new TeleportPathFinder(target.getBoundingBox(), PATH_REACH)
-					.find(home);
-			if(path == null)
+			if(noPathUntil.getOrDefault(target.getId(), 0) > tick)
 				continue;
 			
-			PacketBatcher.run(() -> attackThroughPath(target, home, path));
+			TeleportPathFinder finder =
+				new TeleportPathFinder(target.getBoundingBox(), PATH_REACH);
+			ArrayList<Vec3> path = finder.find(home, !searched);
+			searched |= finder.hasSearched();
+			if(path == null)
+			{
+				// searching every tick for a target that can't be reached
+				// would make the game lag
+				if(finder.hasSearched())
+					noPathUntil.put(target.getId(),
+						tick + (finder.hasTimedOut() ? 5 : 20));
+				continue;
+			}
+			
+			PacketBatcher
+				.run(() -> attackThroughPath(target, home, path, hits));
 			speed.resetTimer();
+			hitsOwed -= hits;
 			return;
 		}
+	}
+	
+	/**
+	 * Makes the attack count as fully charged: on this side by setting the
+	 * cooldown, and on servers that count it by ticks the client says it had,
+	 * by pretending to have had that many ticks.
+	 */
+	private void fakeFullCooldown(Vec3 spot, boolean onGround)
+	{
+		LocalPlayer player = MC.player;
+		int cooldown =
+			(int)Math.ceil(player.getCurrentItemAttackStrengthDelay());
+		
+		int ticks = ultraFastTicks.getValueI();
+		if(ticks <= 0)
+			ticks = cooldown;
+		
+		for(int i = 0; i < ticks; i++)
+		{
+			if(fakeTickPackets
+				.getSelected() == FakeTickPackets.TICK_END_AND_POSITION)
+				player.connection.send(
+					new ServerboundMovePlayerPacket.Pos(spot, onGround, false));
+			
+			player.connection.send(ServerboundClientTickEndPacket.INSTANCE);
+		}
+		
+		// so that Criticals and the hit effects work as usual
+		((LivingEntityAccessor)player).wurst_setAttackStrengthTicker(cooldown);
+	}
+	
+	private boolean isUltraFast()
+	{
+		return mode.getSelected() == Mode.PATH && ultraFast.isChecked();
 	}
 	
 	/**
@@ -233,7 +355,7 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	 * PacketBatcher, so that the server handles all of it at once.
 	 */
 	private void attackThroughPath(Entity target, Vec3 home,
-		ArrayList<Vec3> path)
+		ArrayList<Vec3> path, int hits)
 	{
 		LocalPlayer player = MC.player;
 		boolean moved = !path.isEmpty();
@@ -265,8 +387,17 @@ public final class TpAuraHack extends Hack implements UpdateListener
 			if(!moved)
 				rotation.sendPlayerLookPacket();
 			
-			AttackUtils.attackAndSwing(target,
-				() -> swingHand.swing(InteractionHand.MAIN_HAND));
+			Vec3 spot = moved ? path.get(path.size() - 1) : home;
+			for(int i = 0; i < hits; i++)
+			{
+				if(isUltraFast())
+					fakeFullCooldown(spot,
+						moved ? TeleportPathFinder.isOnGround(spot)
+							: player.onGround());
+				
+				AttackUtils.attackAndSwing(target,
+					() -> swingHand.swing(InteractionHand.MAIN_HAND));
+			}
 			
 		}finally
 		{
@@ -300,6 +431,25 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	private boolean isOnGround(Vec3 from, Vec3 to, boolean onGround)
 	{
 		return to.y < from.y || onGround || TeleportPathFinder.isOnGround(to);
+	}
+	
+	private enum FakeTickPackets
+	{
+		TICK_END("Tick end"),
+		TICK_END_AND_POSITION("Tick end + position");
+		
+		private final String name;
+		
+		private FakeTickPackets(String name)
+		{
+			this.name = name;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return name;
+		}
 	}
 	
 	private enum Mode
