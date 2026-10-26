@@ -64,6 +64,7 @@
     "freecam.MouseHandlerMixin",
     "handnoclip.BlockStateBaseMixin",
     "healthtags.EntityRendererMixin",
+    "hitboxes.EntityHitboxDebugRendererMixin",
     "hitboxes.LocalPlayerMixin",
     "hitboxes.ProjectileUtilMixin",
     "infinichat.ChatScreenMixin",

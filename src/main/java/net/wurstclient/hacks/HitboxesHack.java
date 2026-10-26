@@ -83,18 +83,25 @@ public final class HitboxesHack extends Hack
 	public AABB getPickBox(Entity entity, AABB box)
 	{
 		// singleplayer's server uses the same code for projectiles
-		if(!picking || !MC.isSameThread() || !shouldExpand(entity))
+		if(!picking || !MC.isSameThread())
+			return box;
+		
+		return getBiggerBox(entity, box);
+	}
+	
+	/**
+	 * The bigger hitbox of this entity, or the real one if Hitboxes doesn't
+	 * affect it. Also shown with F3+B, see
+	 * hitboxes.EntityHitboxDebugRendererMixin.
+	 */
+	public AABB getBiggerBox(Entity entity, AABB box)
+	{
+		if(!shouldExpand(entity))
 			return box;
 		
 		double extra = size.getValue() - 1;
-		AABB bigger = box.inflate(box.getXsize() * extra / 2,
+		return box.inflate(box.getXsize() * extra / 2,
 			box.getYsize() * extra / 2, box.getZsize() * extra / 2);
-		
-		// vanilla can't aim at entities from inside their hitbox
-		if(bigger.contains(MC.player.getEyePosition()))
-			return box;
-		
-		return bigger;
 	}
 	
 	private boolean shouldExpand(Entity entity)
@@ -103,5 +110,6 @@ public final class HitboxesHack extends Hack
 			&& entityFilters.testOne(entity);
 	}
 	
-	// See hitboxes.LocalPlayerMixin and hitboxes.ProjectileUtilMixin
+	// See hitboxes.LocalPlayerMixin, hitboxes.ProjectileUtilMixin and
+	// hitboxes.EntityHitboxDebugRendererMixin
 }
