@@ -68,7 +68,7 @@ public final class SetSliderCmd extends Command
 			default:
 			if(!MathUtils.isDouble(value))
 				throw new CmdSyntaxError("Value must be a number.");
-			slider.setValue(Double.parseDouble(value));
+			slider.setTypedValue(Double.parseDouble(value));
 			break;
 		}
 	}

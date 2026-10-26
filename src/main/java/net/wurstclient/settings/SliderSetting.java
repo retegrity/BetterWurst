@@ -71,6 +71,11 @@ public class SliderSetting extends Setting implements SliderLock
 	public final double getValue()
 	{
 		double value = isLocked() ? lock.getValue() : this.value;
+		
+		// typed-in values can be outside of the slider's range
+		if(!isLimited())
+			return value;
+		
 		return MathUtils.clamp(value, usableMin, usableMax);
 	}
 	
@@ -119,6 +124,22 @@ public class SliderSetting extends Setting implements SliderLock
 			return;
 		
 		setValueIgnoreLock(value);
+	}
+	
+	/**
+	 * Sets the value exactly as typed in, even if it's outside of the
+	 * slider's range or between its steps. Used by the edit screen and the
+	 * .setslider command.
+	 */
+	public final void setTypedValue(double value)
+	{
+		if(disabled || isLocked() || !Double.isFinite(value))
+			return;
+		
+		this.value = value;
+		update();
+		
+		WurstClient.INSTANCE.saveSettings();
 	}
 	
 	@Override
@@ -170,7 +191,7 @@ public class SliderSetting extends Setting implements SliderLock
 	
 	public final double getPercentage()
 	{
-		return (getValue() - minimum) / getRange();
+		return MathUtils.clamp((getValue() - minimum) / getRange(), 0, 1);
 	}
 	
 	public float[] getKnobColor()
@@ -269,10 +290,12 @@ public class SliderSetting extends Setting implements SliderLock
 			return;
 		
 		double value = json.getAsDouble();
-		if(value > maximum || value < minimum)
+		if(!Double.isFinite(value))
 			return;
 		
-		setValueIgnoreLock(value);
+		// no rounding or clamping, to keep typed-in values
+		this.value = value;
+		update();
 	}
 	
 	@Override
