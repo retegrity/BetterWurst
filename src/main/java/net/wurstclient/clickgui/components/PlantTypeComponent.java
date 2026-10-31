@@ -9,7 +9,6 @@ package net.wurstclient.clickgui.components;
 
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.wurstclient.clickgui.ClickGui;
@@ -18,11 +17,11 @@ import net.wurstclient.clickgui.Component;
 import net.wurstclient.settings.PlantTypeSetting;
 import net.wurstclient.util.RenderUtils;
 import net.wurstclient.util.text.WText;
+import net.wurstclient.util.WurstFont;
 
 public final class PlantTypeComponent extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	private static final int BOX_SIZE = 11;
 	private static final int ICON_SIZE = 24;
 	private static final String HARVEST = "Harvest";
@@ -47,8 +46,8 @@ public final class PlantTypeComponent extends Component
 		if(mouseY < getY() + getHeight() - BOX_SIZE)
 			return;
 		
-		boolean hHarvest =
-			mouseX < getX() + ICON_SIZE + BOX_SIZE + TR.width(HARVEST) + 4;
+		boolean hHarvest = mouseX < getX() + ICON_SIZE + BOX_SIZE
+			+ WurstFont.get().width(HARVEST) + 4;
 		
 		switch(mouseButton)
 		{
@@ -72,7 +71,7 @@ public final class PlantTypeComponent extends Component
 	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY,
 		float partialTicks)
 	{
-		int harvestWidth = TR.width(HARVEST);
+		int harvestWidth = WurstFont.get().width(HARVEST);
 		
 		int x1 = getX();
 		int x2 = x1 + getWidth();
@@ -125,9 +124,12 @@ public final class PlantTypeComponent extends Component
 		
 		// text
 		String name = setting.getName();
-		context.text(TR, name, x3 + 2, y1 + 3, GUI.getTxtColor(), false);
-		context.text(TR, HARVEST, x4 + 2, y3 + 2, GUI.getTxtColor(), false);
-		context.text(TR, REPLANT, x6 + 2, y3 + 2, GUI.getTxtColor(), false);
+		context.text(WurstFont.get(), name, x3 + 2, y1 + 3, GUI.getTxtColor(),
+			false);
+		context.text(WurstFont.get(), HARVEST, x4 + 2, y3 + 2,
+			GUI.getTxtColor(), false);
+		context.text(WurstFont.get(), REPLANT, x6 + 2, y3 + 2,
+			GUI.getTxtColor(), false);
 	}
 	
 	private int getFillColor(boolean hovering)
@@ -139,9 +141,9 @@ public final class PlantTypeComponent extends Component
 	@Override
 	public int getDefaultWidth()
 	{
-		int nameWidth = TR.width(setting.getName());
-		int boxesWidth =
-			2 * BOX_SIZE + TR.width(HARVEST) + TR.width(REPLANT) + 6;
+		int nameWidth = WurstFont.get().width(setting.getName());
+		int boxesWidth = 2 * BOX_SIZE + WurstFont.get().width(HARVEST)
+			+ WurstFont.get().width(REPLANT) + 6;
 		return ICON_SIZE + Math.max(nameWidth, boxesWidth);
 	}
 	

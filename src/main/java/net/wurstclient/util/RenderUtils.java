@@ -119,6 +119,14 @@ public enum RenderUtils
 			| (int)(Mth.clamp(rgb[2], 0, 1) * 255);
 	}
 	
+	/**
+	 * The line width in pixels, as set in Wurst Options.
+	 */
+	public static float getLineWidth()
+	{
+		return WurstClient.INSTANCE.getOtfs().wurstOptionsOtf.getLineWidth();
+	}
+	
 	public static void drawLine(PoseStack matrices, Vec3 start, Vec3 end,
 		int color, boolean depthTest)
 	{
@@ -169,6 +177,12 @@ public enum RenderUtils
 	public static void drawTracers(PoseStack matrices, float partialTicks,
 		List<ColoredPoint> ends, boolean depthTest)
 	{
+		drawTracers(matrices, partialTicks, ends, depthTest, getLineWidth());
+	}
+	
+	public static void drawTracers(PoseStack matrices, float partialTicks,
+		List<ColoredPoint> ends, boolean depthTest, float lineWidth)
+	{
 		MultiBufferSource.BufferSource vcp = getVCP();
 		RenderType layer = WurstRenderLayers.getLines(depthTest);
 		VertexConsumer buffer = vcp.getBuffer(layer);
@@ -176,8 +190,12 @@ public enum RenderUtils
 		Vec3 start = getTracerOrigin(partialTicks);
 		Vec3 offset = getCameraPos().reverse();
 		for(ColoredPoint end : ends)
-			drawLine(matrices, buffer, start, end.point().add(offset),
-				end.color());
+		{
+			Vec3 endPos = end.point().add(offset);
+			drawLine(matrices.last(), buffer, (float)start.x, (float)start.y,
+				(float)start.z, (float)endPos.x, (float)endPos.y,
+				(float)endPos.z, end.color(), lineWidth);
+		}
 		
 		vcp.endBatch(layer);
 	}
@@ -198,9 +216,16 @@ public enum RenderUtils
 	public static void drawLine(PoseStack.Pose entry, VertexConsumer buffer,
 		float x1, float y1, float z1, float x2, float y2, float z2, int color)
 	{
+		drawLine(entry, buffer, x1, y1, z1, x2, y2, z2, color, getLineWidth());
+	}
+	
+	public static void drawLine(PoseStack.Pose entry, VertexConsumer buffer,
+		float x1, float y1, float z1, float x2, float y2, float z2, int color,
+		float lineWidth)
+	{
 		Vector3f normal = new Vector3f(x2, y2, z2).sub(x1, y1, z1).normalize();
 		buffer.addVertex(entry, x1, y1, z1).setColor(color)
-			.setNormal(entry, normal).setLineWidth(2);
+			.setNormal(entry, normal).setLineWidth(lineWidth);
 		
 		// If the line goes through the screen, add another vertex there. This
 		// works around a bug in Minecraft's line shader.
@@ -210,13 +235,13 @@ public enum RenderUtils
 		{
 			Vector3f closeToCam = new Vector3f(normal).mul(t).add(x1, y1, z1);
 			buffer.addVertex(entry, closeToCam).setColor(color)
-				.setNormal(entry, normal).setLineWidth(2);
+				.setNormal(entry, normal).setLineWidth(lineWidth);
 			buffer.addVertex(entry, closeToCam).setColor(color)
-				.setNormal(entry, normal).setLineWidth(2);
+				.setNormal(entry, normal).setLineWidth(lineWidth);
 		}
 		
 		buffer.addVertex(entry, x2, y2, z2).setColor(color)
-			.setNormal(entry, normal).setLineWidth(2);
+			.setNormal(entry, normal).setLineWidth(lineWidth);
 	}
 	
 	public static void drawLine(VertexConsumer buffer, float x1, float y1,
@@ -224,9 +249,9 @@ public enum RenderUtils
 	{
 		Vector3f n = new Vector3f(x2, y2, z2).sub(x1, y1, z1).normalize();
 		buffer.addVertex(x1, y1, z1).setColor(color).setNormal(n.x, n.y, n.z)
-			.setLineWidth(2);
+			.setLineWidth(getLineWidth());
 		buffer.addVertex(x2, y2, z2).setColor(color).setNormal(n.x, n.y, n.z)
-			.setLineWidth(2);
+			.setLineWidth(getLineWidth());
 	}
 	
 	public static void drawCurvedLine(PoseStack matrices, List<Vec3> points,
@@ -257,9 +282,9 @@ public enum RenderUtils
 			Vector3f current = points.get(i).toVector3f();
 			Vector3f normal = new Vector3f(current).sub(prev).normalize();
 			buffer.addVertex(entry, prev).setColor(color)
-				.setNormal(entry, normal).setLineWidth(2);
+				.setNormal(entry, normal).setLineWidth(getLineWidth());
 			buffer.addVertex(entry, current).setColor(color)
-				.setNormal(entry, normal).setLineWidth(2);
+				.setNormal(entry, normal).setLineWidth(getLineWidth());
 		}
 	}
 	
@@ -413,57 +438,57 @@ public enum RenderUtils
 		
 		// bottom lines
 		buffer.addVertex(entry, x1, y1, z1).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z1).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z1).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z2).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z1).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z2).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z2).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z2).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		
 		// top lines
 		buffer.addVertex(entry, x1, y2, z1).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z1).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z1).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z2).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z1).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z2).setColor(color)
-			.setNormal(entry, 0, 0, 1).setLineWidth(2);
+			.setNormal(entry, 0, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z2).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z2).setColor(color)
-			.setNormal(entry, 1, 0, 0).setLineWidth(2);
+			.setNormal(entry, 1, 0, 0).setLineWidth(getLineWidth());
 		
 		// side lines
 		buffer.addVertex(entry, x1, y1, z1).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z1).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z1).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z1).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z2).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z2).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z2).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z2).setColor(color)
-			.setNormal(entry, 0, 1, 0).setLineWidth(2);
+			.setNormal(entry, 0, 1, 0).setLineWidth(getLineWidth());
 	}
 	
 	public static void drawCrossBox(PoseStack matrices, AABB box, int color,
@@ -526,63 +551,63 @@ public enum RenderUtils
 		
 		// back
 		buffer.addVertex(entry, x1, y1, z1).setColor(color)
-			.setNormal(entry, 1, 1, 0).setLineWidth(2);
+			.setNormal(entry, 1, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z1).setColor(color)
-			.setNormal(entry, 1, 1, 0).setLineWidth(2);
+			.setNormal(entry, 1, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z1).setColor(color)
-			.setNormal(entry, -1, 1, 0).setLineWidth(2);
+			.setNormal(entry, -1, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z1).setColor(color)
-			.setNormal(entry, -1, 1, 0).setLineWidth(2);
+			.setNormal(entry, -1, 1, 0).setLineWidth(getLineWidth());
 		
 		// left
 		buffer.addVertex(entry, x2, y1, z1).setColor(color)
-			.setNormal(entry, 0, 1, 1).setLineWidth(2);
+			.setNormal(entry, 0, 1, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z2).setColor(color)
-			.setNormal(entry, 0, 1, 1).setLineWidth(2);
+			.setNormal(entry, 0, 1, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z2).setColor(color)
-			.setNormal(entry, 0, 1, -1).setLineWidth(2);
+			.setNormal(entry, 0, 1, -1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z1).setColor(color)
-			.setNormal(entry, 0, 1, -1).setLineWidth(2);
+			.setNormal(entry, 0, 1, -1).setLineWidth(getLineWidth());
 		
 		// front
 		buffer.addVertex(entry, x2, y1, z2).setColor(color)
-			.setNormal(entry, -1, 1, 0).setLineWidth(2);
+			.setNormal(entry, -1, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z2).setColor(color)
-			.setNormal(entry, -1, 1, 0).setLineWidth(2);
+			.setNormal(entry, -1, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z2).setColor(color)
-			.setNormal(entry, 1, 1, 0).setLineWidth(2);
+			.setNormal(entry, 1, 1, 0).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z2).setColor(color)
-			.setNormal(entry, 1, 1, 0).setLineWidth(2);
+			.setNormal(entry, 1, 1, 0).setLineWidth(getLineWidth());
 		
 		// right
 		buffer.addVertex(entry, x1, y1, z2).setColor(color)
-			.setNormal(entry, 0, 1, -1).setLineWidth(2);
+			.setNormal(entry, 0, 1, -1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z1).setColor(color)
-			.setNormal(entry, 0, 1, -1).setLineWidth(2);
+			.setNormal(entry, 0, 1, -1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z1).setColor(color)
-			.setNormal(entry, 0, 1, 1).setLineWidth(2);
+			.setNormal(entry, 0, 1, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z2).setColor(color)
-			.setNormal(entry, 0, 1, 1).setLineWidth(2);
+			.setNormal(entry, 0, 1, 1).setLineWidth(getLineWidth());
 		
 		// top
 		buffer.addVertex(entry, x1, y2, z2).setColor(color)
-			.setNormal(entry, 1, 0, -1).setLineWidth(2);
+			.setNormal(entry, 1, 0, -1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z1).setColor(color)
-			.setNormal(entry, 1, 0, -1).setLineWidth(2);
+			.setNormal(entry, 1, 0, -1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y2, z1).setColor(color)
-			.setNormal(entry, 1, 0, 1).setLineWidth(2);
+			.setNormal(entry, 1, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y2, z2).setColor(color)
-			.setNormal(entry, 1, 0, 1).setLineWidth(2);
+			.setNormal(entry, 1, 0, 1).setLineWidth(getLineWidth());
 		
 		// bottom
 		buffer.addVertex(entry, x2, y1, z1).setColor(color)
-			.setNormal(entry, -1, 0, 1).setLineWidth(2);
+			.setNormal(entry, -1, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z2).setColor(color)
-			.setNormal(entry, -1, 0, 1).setLineWidth(2);
+			.setNormal(entry, -1, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x1, y1, z1).setColor(color)
-			.setNormal(entry, 1, 0, 1).setLineWidth(2);
+			.setNormal(entry, 1, 0, 1).setLineWidth(getLineWidth());
 		buffer.addVertex(entry, x2, y1, z2).setColor(color)
-			.setNormal(entry, 1, 0, 1).setLineWidth(2);
+			.setNormal(entry, 1, 0, 1).setLineWidth(getLineWidth());
 	}
 	
 	public static void drawNode(PoseStack matrices, AABB box, int color,
@@ -759,15 +784,35 @@ public enum RenderUtils
 		float x2, float y2, int color)
 	{
 		int scale = WurstClient.MC.getWindow().getGuiScale();
-		int xs1 = (int)(x1 * scale);
-		int ys1 = (int)(y1 * scale);
-		int xs2 = (int)(x2 * scale);
-		int ys2 = (int)(y2 * scale);
+		int xs1 = snapDown(x1, scale);
+		int ys1 = snapDown(y1, scale);
+		int xs2 = snapDown(x2, scale);
+		int ys2 = snapDown(y2, scale);
 		
 		context.pose().pushMatrix();
 		context.pose().scale(1F / scale);
 		context.fill(xs1, ys1, xs2, ys2, color);
 		context.pose().popMatrix();
+	}
+	
+	/**
+	 * Converts a GUI coordinate to a physical pixel index. Adds a tiny
+	 * tolerance so that float errors (e.g. 2.9999999 instead of 3) don't make
+	 * edges end up one pixel off.
+	 */
+	private static int snapDown(float coordinate, int scale)
+	{
+		return (int)Math.floor(coordinate * scale + 0.001);
+	}
+	
+	/**
+	 * Returns the physical pixel that a 1px line at the given GUI coordinate
+	 * covers. This matches how the old hardware lines were rasterized: a line
+	 * exactly on a pixel boundary uses the pixel before it.
+	 */
+	private static int linePixel(float coordinate, int scale)
+	{
+		return (int)Math.ceil(coordinate * scale - 0.001) - 1;
 	}
 	
 	/**
@@ -838,6 +883,22 @@ public enum RenderUtils
 		float y1, float x2, float y2, int color)
 	{
 		int scale = WurstClient.MC.getWindow().getGuiScale();
+		
+		// straight lines are drawn pixel-exact
+		if(x1 == x2 || y1 == y2)
+		{
+			int xa = linePixel(Math.min(x1, x2), scale);
+			int xb = linePixel(Math.max(x1, x2), scale);
+			int ya = linePixel(Math.min(y1, y2), scale);
+			int yb = linePixel(Math.max(y1, y2), scale);
+			
+			context.pose().pushMatrix();
+			context.pose().scale(1F / scale);
+			context.fill(xa, ya, xb + 1, yb + 1, color);
+			context.pose().popMatrix();
+			return;
+		}
+		
 		float x = x1 * scale;
 		float y = y1 * scale;
 		float w = (x2 - x1) * scale;
@@ -864,17 +925,17 @@ public enum RenderUtils
 		float y1, float x2, float y2, int color)
 	{
 		int scale = WurstClient.MC.getWindow().getGuiScale();
-		int x = (int)(x1 * scale);
-		int y = (int)(y1 * scale);
-		int w = (int)((x2 - x1) * scale);
-		int h = (int)((y2 - y1) * scale);
+		int xa = linePixel(x1, scale);
+		int ya = linePixel(y1, scale);
+		int xb = linePixel(x2, scale);
+		int yb = linePixel(y2, scale);
 		
 		context.pose().pushMatrix();
 		context.pose().scale(1F / scale);
-		context.horizontalLine(x, x + w - 1, y, color);
-		context.horizontalLine(x, x + w - 1, y + h - 1, color);
-		context.verticalLine(x, y + 1, y + h - 1, color);
-		context.verticalLine(x + w - 1, y + 1, y + h - 1, color);
+		context.fill(xa, ya, xb + 1, ya + 1, color);
+		context.fill(xa, yb, xb + 1, yb + 1, color);
+		context.fill(xa, ya + 1, xa + 1, yb, color);
+		context.fill(xb, ya + 1, xb + 1, yb, color);
 		context.pose().popMatrix();
 	}
 	
@@ -903,9 +964,9 @@ public enum RenderUtils
 	{
 		float[] acColor = WurstClient.INSTANCE.getGui().getAcColor();
 		
-		// outline
-		int outlineColor = toIntColor(acColor, 0.5F);
-		drawBorder2D(context, x1, y1, x2, y2, outlineColor);
+		// No separate outline here: before 1.21.6 the 1px outline was drawn
+		// 0.1 units outside of the box, so it blended into the shadow instead
+		// of adding an extra dark line on top of the box edge.
 		
 		// shadow
 		float xs1 = x1 - 1;
@@ -913,7 +974,9 @@ public enum RenderUtils
 		float ys1 = y1 - 1;
 		float ys2 = y2 + 1;
 		
-		int shadowColor1 = toIntColor(acColor, 0.75F);
+		// 1.21.5 measured 50% opacity right next to the box at GUI scale 2,
+		// which corresponds to a peak opacity of about 2/3 for this gradient.
+		int shadowColor1 = toIntColor(acColor, 2F / 3F);
 		int shadowColor2 = 0x00000000;
 		
 		Matrix3x2f pose = new Matrix3x2f(context.pose());

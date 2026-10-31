@@ -19,14 +19,14 @@ public class ScreenEffectRendererMixin
 {
 	/**
 	 * Lowers both sides of the first-person fire overlay by the offset supplied
-	 * by NoFireOverlay.
+	 * by LowFire.
 	 */
 	@ModifyConstant(
 		method = "renderFire(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/renderer/texture/TextureAtlasSprite;)V",
 		constant = @Constant(floatValue = -0.3F))
 	private static float getFireOffset(float original)
 	{
-		return original - WurstClient.INSTANCE.getHax().noFireOverlayHack
-			.getOverlayOffset();
+		return original
+			- WurstClient.INSTANCE.getHax().lowFireHack.getOverlayOffset();
 	}
 }

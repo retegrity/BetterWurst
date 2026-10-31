@@ -36,6 +36,9 @@ public enum AltManagerTest
 			checkButtonPosition(altManagerButton, realmsButton.getRight() + 4,
 				multiplayerButton.getBottom() + 4);
 		});
+		
+		// The title screenshot is not compared, since this fork replaces the
+		// Minecraft logo with the Wurst 6 style main menu.
 	}
 	
 	/**

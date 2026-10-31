@@ -8,7 +8,12 @@
 package net.wurstclient.hacks;
 
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
+import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
 import net.minecraft.network.protocol.game.ServerboundAttackPacket;
+import net.minecraft.network.protocol.game.ServerboundChatAckPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
@@ -29,16 +34,34 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 		4, 0.5, 9.5, 0.5, ValueDisplay.DECIMAL.withSuffix(" hearts"));
 	
 	public final EnumSetting<Mode> mode = new EnumSetting<>("Mode",
-		"\u00a7lQuit\u00a7r mode just quits the game normally.\n"
-			+ "Bypasses NoCheat+ but not CombatLog.\n\n"
+		"\u00a7lQuit\u00a7r mode just quits the game normally."
+			+ " Doesn't bypass CombatLog.\n"
 			+ "\u00a7lChars\u00a7r mode sends a special chat message that"
-			+ " causes the server to kick you.\n"
-			+ "Bypasses NoCheat+ and some versions of CombatLog.\n\n"
+			+ " causes the server to kick you. Bypasses some versions of"
+			+ " CombatLog.\n"
 			+ "\u00a7lSelfHurt\u00a7r mode sends the packet for attacking"
 			+ " another player, but with yourself as both the attacker and the"
-			+ " target, causing the server to kick you.\n"
-			+ "Bypasses both CombatLog and NoCheat+.",
+			+ " target, causing the server to kick you. Bypasses CombatLog.\n"
+			+ "\u00a7lKeepAlive\u00a7r mode answers the server's connection"
+			+ " check wrong, so it kicks you for timing out. Doesn't work on"
+			+ " Velocity servers.\n"
+			+ "\u00a7lInvalidPos\u00a7r mode sends an impossible position,"
+			+ " which the server kicks you for.\n"
+			+ "\u00a7lCookie\u00a7r mode sends an answer to a question the"
+			+ " server never asked, which it kicks you for.\n"
+			+ "\u00a7lChatAck\u00a7r mode confirms chat messages that were"
+			+ " never sent, which fails the server's chat validation.",
 		Mode.values(), Mode.QUIT);
+	
+	private final CheckboxSetting chatAckMessage = new CheckboxSetting(
+		"Also send chat packet (ChatAck)",
+		"In \u00a7lChatAck\u00a7r mode, also sends a chat message (a dot)"
+			+ " right after it. Velocity only passes the bad confirmation on to"
+			+ " the server together with your next chat message, so without"
+			+ " this, you are only kicked once you chat.\n\n"
+			+ "On servers that don't check chat messages, the dot is posted in"
+			+ " chat.",
+		false);
 	
 	private final CheckboxSetting disableAutoReconnect = new CheckboxSetting(
 		"Disable AutoReconnect", "Automatically turns off AutoReconnect when"
@@ -58,6 +81,7 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 		setCategory(Category.COMBAT);
 		addSetting(health);
 		addSetting(mode);
+		addSetting(chatAckMessage);
 		addSetting(disableAutoReconnect);
 		addSetting(totems);
 	}
@@ -102,6 +126,8 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 		
 		// leave server
 		mode.getSelected().leave.run();
+		if(mode.getSelected() == Mode.CHATACK && chatAckMessage.isChecked())
+			MC.getConnection().sendChat(".");
 		
 		// disable
 		setEnabled(false);
@@ -117,8 +143,29 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 		
 		CHARS("Chars", () -> MC.getConnection().sendChat("\u00a7")),
 		
-		SELFHURT("SelfHurt", () -> MC.getConnection()
-			.send(new ServerboundAttackPacket(MC.player.getId())));
+		SELFHURT("SelfHurt",
+			() -> MC.getConnection()
+				.send(new ServerboundAttackPacket(MC.player.getId()))),
+		
+		// the server expects the ID it sent, which is a timestamp
+		KEEPALIVE("KeepAlive",
+			() -> MC.getConnection()
+				.send(new ServerboundKeepAlivePacket(Long.MIN_VALUE))),
+		
+		INVALIDPOS("InvalidPos",
+			() -> MC.getConnection()
+				.send(new ServerboundMovePlayerPacket.Pos(Double.NaN,
+					Double.NaN, Double.NaN, false, false))),
+		
+		COOKIE("Cookie",
+			() -> MC.getConnection()
+				.send(new ServerboundCookieResponsePacket(
+					Identifier.fromNamespaceAndPath("wurst", "leave"),
+					new byte[0]))),
+		
+		// a negative number of newly seen messages is never valid
+		CHATACK("ChatAck",
+			() -> MC.getConnection().send(new ServerboundChatAckPacket(-1)));
 		
 		private final String name;
 		private final Runnable leave;

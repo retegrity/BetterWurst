@@ -20,6 +20,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 import net.wurstclient.WurstClient;
+import net.wurstclient.hack.HackList;
 import net.wurstclient.mixinterface.IKeyMapping;
 
 @Mixin(KeyMapping.class)
@@ -47,7 +48,13 @@ public abstract class KeyMappingMixin implements IKeyMapping
 	@Deprecated // use IKeyMapping.resetDownState() instead
 	public void wurst_resetDownState()
 	{
-		setDown(wurst_isActuallyDown());
+		// Keys don't work while a screen is open (chat, inventory, etc.),
+		// unless InvWalk allows them. Otherwise, hacks releasing a key would
+		// make you sneak or jump while e.g. typing in chat.
+		HackList hax = WurstClient.INSTANCE.getHax();
+		boolean usable = hax == null
+			|| hax.invWalkHack.canPressKey((KeyMapping)(Object)this);
+		setDown(usable && wurst_isActuallyDown());
 	}
 	
 	@Override

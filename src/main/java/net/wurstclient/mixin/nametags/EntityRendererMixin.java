@@ -40,7 +40,8 @@ public abstract class EntityRendererMixin<T extends Entity, S extends EntityRend
 	{
 		actualDistanceSq.set(original.call(dispatcher, entity));
 		
-		if(WurstClient.INSTANCE.getHax().nameTagsHack.isUnlimitedRange())
+		if(WurstClient.INSTANCE.getHax().nameTagsHack.isUnlimitedRange()
+			&& !WurstClient.INSTANCE.getHax().antiBotHack.isBot(entity))
 			return 0;
 		
 		return actualDistanceSq.get();

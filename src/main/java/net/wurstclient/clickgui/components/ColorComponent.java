@@ -9,7 +9,6 @@ package net.wurstclient.clickgui.components;
 
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.wurstclient.clickgui.ClickGui;
@@ -19,11 +18,11 @@ import net.wurstclient.settings.ColorSetting;
 import net.wurstclient.util.ColorUtils;
 import net.wurstclient.util.RenderUtils;
 import net.wurstclient.util.text.WText;
+import net.wurstclient.util.WurstFont;
 
 public final class ColorComponent extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	private static final int TEXT_HEIGHT = 11;
 	
 	private final ColorSetting setting;
@@ -87,11 +86,12 @@ public final class ColorComponent extends Component
 		// text
 		String name = setting.getName();
 		String value = ColorUtils.toHex(setting.getColor());
-		int valueWidth = TR.width(value);
+		int valueWidth = WurstFont.get().width(value);
 		int txtColor = GUI.getTxtColor();
 		context.guiRenderState.up();
-		context.text(TR, name, x1, y1 + 2, txtColor, false);
-		context.text(TR, value, x2 - valueWidth, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), name, x1, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), value, x2 - valueWidth, y1 + 2, txtColor,
+			false);
 	}
 	
 	private String getColorTooltip()
@@ -109,7 +109,7 @@ public final class ColorComponent extends Component
 	@Override
 	public int getDefaultWidth()
 	{
-		return TR.width(setting.getName() + "#FFFFFF") + 6;
+		return WurstFont.get().width(setting.getName() + "#FFFFFF") + 6;
 	}
 	
 	@Override

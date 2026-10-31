@@ -64,7 +64,8 @@ public enum EntityUtils
 	}
 	
 	public static final Predicate<Entity> IS_NOT_SELF =
-		e -> e != null && e != MC.player && !(e instanceof FakePlayerEntity);
+		e -> e != null && e != MC.player && !(e instanceof FakePlayerEntity)
+			&& !WURST.getHax().antiBotHack.isBot(e);
 	
 	public static Stream<Entity> getMeleeAttackableEntities()
 	{

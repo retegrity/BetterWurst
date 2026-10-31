@@ -7,7 +7,8 @@
  */
 package net.wurstclient.mixin;
 
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,6 +34,7 @@ public class DisconnectedScreenMixin extends Screen
 {
 	private int autoReconnectTimer;
 	private Button autoReconnectButton;
+	private boolean addedReconnectButtons;
 	
 	@Shadow
 	@Final
@@ -75,21 +77,27 @@ public class DisconnectedScreenMixin extends Screen
 	
 	private void addReconnectButtons()
 	{
-		Button reconnectButton = layout.addChild(Button
-			.builder(Component.literal("Reconnect"),
-				b -> LastServerRememberer.reconnect(parent))
-			.width(200).build());
-		
-		autoReconnectButton =
-			layout.addChild(Button.builder(Component.literal("AutoReconnect"),
-				b -> pressAutoReconnect()).width(200).build());
-		
-		layout.arrangeElements();
-		Stream.of(reconnectButton, autoReconnectButton)
-			.forEach(this::addRenderableWidget);
-		
 		AutoReconnectHack autoReconnect =
 			WurstClient.INSTANCE.getHax().autoReconnectHack;
+		List<Button> buttons = new ArrayList<>();
+		
+		if(!WurstClient.INSTANCE.getOtfs().reconnectOtf.isButtonHidden())
+			buttons.add(layout.addChild(Button
+				.builder(Component.literal("Reconnect"),
+					b -> LastServerRememberer.reconnect(parent))
+				.width(200).build()));
+		
+		if(autoReconnect.isButtonShown())
+		{
+			autoReconnectButton = layout
+				.addChild(Button.builder(Component.literal("AutoReconnect"),
+					b -> pressAutoReconnect()).width(200).build());
+			buttons.add(autoReconnectButton);
+		}
+		
+		layout.arrangeElements();
+		buttons.forEach(this::addRenderableWidget);
+		addedReconnectButtons = true;
 		
 		if(autoReconnect.isEnabled())
 			autoReconnectTimer = autoReconnect.getWaitTicks();
@@ -109,7 +117,7 @@ public class DisconnectedScreenMixin extends Screen
 	@Override
 	public void tick()
 	{
-		if(!WurstClient.INSTANCE.isEnabled() || autoReconnectButton == null)
+		if(!WurstClient.INSTANCE.isEnabled() || !addedReconnectButtons)
 			return;
 		
 		AutoReconnectHack autoReconnect =
@@ -117,12 +125,16 @@ public class DisconnectedScreenMixin extends Screen
 		
 		if(!autoReconnect.isEnabled())
 		{
-			autoReconnectButton.setMessage(Component.literal("AutoReconnect"));
+			if(autoReconnectButton != null)
+				autoReconnectButton
+					.setMessage(Component.literal("AutoReconnect"));
 			return;
 		}
 		
-		autoReconnectButton.setMessage(Component.literal("AutoReconnect ("
-			+ (int)Math.ceil(autoReconnectTimer / 20.0) + ")"));
+		// still reconnects when the button is hidden
+		if(autoReconnectButton != null)
+			autoReconnectButton.setMessage(Component.literal("AutoReconnect ("
+				+ (int)Math.ceil(autoReconnectTimer / 20.0) + ")"));
 		
 		if(autoReconnectTimer > 0)
 		{

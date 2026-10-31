@@ -48,8 +48,8 @@ public final class InstaBuildHack extends Hack
 		"autobuild", path -> {});
 	
 	private final SliderSetting range = new SliderSetting("Range",
-		"How far to reach when placing blocks.\n" + "Recommended values:\n"
-			+ "6.0 for vanilla\n" + "4.25 for NoCheat+",
+		"How far to reach when placing blocks.\n"
+			+ "Vanilla servers allow up to 5.5 in survival.",
 		6, 1, 10, 0.05, ValueDisplay.DECIMAL);
 	
 	private final CheckboxSetting useSavedBlocks = new CheckboxSetting(

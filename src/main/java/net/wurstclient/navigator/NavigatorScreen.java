@@ -17,6 +17,7 @@ import net.minecraft.network.chat.Component;
 import net.wurstclient.WurstClient;
 import net.wurstclient.clickgui.ClickGui;
 import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
 
 public abstract class NavigatorScreen extends Screen
 {
@@ -111,6 +112,11 @@ public abstract class NavigatorScreen extends Screen
 	public final boolean mouseScrolled(double mouseX, double mouseY,
 		double horizontalAmount, double verticalAmount)
 	{
+		// drop-down menus that are too long scroll on their own
+		if(WurstClient.INSTANCE.getGui().handlePopupMouseScroll(mouseX, mouseY,
+			verticalAmount))
+			return true;
+		
 		// scrollbar
 		if(!scrollbarLocked)
 		{
@@ -209,7 +215,7 @@ public abstract class NavigatorScreen extends Screen
 	
 	protected final int getStringHeight(String s)
 	{
-		int fontHeight = minecraft.font.lineHeight;
+		int fontHeight = WurstFont.get().lineHeight;
 		int height = fontHeight;
 		
 		for(int i = 0; i < s.length(); i++)

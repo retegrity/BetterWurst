@@ -138,6 +138,8 @@ public enum WurstClient
 		Path altsFile = wurstFolder.resolve("alts.encrypted_json");
 		Path encFolder = Encryption.chooseEncryptionFolder();
 		altManager = new AltManager(altsFile, encFolder);
+		
+		hax.enableEarlyHax();
 	}
 	
 	private Path createWurstFolder()

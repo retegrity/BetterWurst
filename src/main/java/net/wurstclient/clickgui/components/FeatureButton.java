@@ -9,7 +9,6 @@ package net.wurstclient.clickgui.components;
 
 import java.util.Objects;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.wurstclient.Feature;
@@ -21,11 +20,11 @@ import net.wurstclient.clickgui.Window;
 import net.wurstclient.hacks.TooManyHaxHack;
 import net.wurstclient.util.ChatUtils;
 import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
 
 public final class FeatureButton extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	
 	private final Feature feature;
 	private final boolean hasSettings;
@@ -121,9 +120,9 @@ public final class FeatureButton extends Component
 		
 		// text
 		String name = feature.getName();
-		int tx = x1 + (x3 - x1 - TR.width(name)) / 2;
+		int tx = x1 + (x3 - x1 - WurstFont.get().width(name)) / 2;
 		int ty = y1 + 2;
-		context.text(TR, name, tx, ty, GUI.getTxtColor(), false);
+		context.text(WurstFont.get(), name, tx, ty, GUI.getTxtColor(), false);
 	}
 	
 	private int getButtonColor(boolean enabled, boolean hovering)
@@ -136,7 +135,7 @@ public final class FeatureButton extends Component
 	@Override
 	public int getDefaultWidth()
 	{
-		int width = TR.width(feature.getName());
+		int width = WurstFont.get().width(feature.getName());
 		width += hasSettings ? 15 : 4;
 		return width;
 	}

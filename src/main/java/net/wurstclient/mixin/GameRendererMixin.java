@@ -24,6 +24,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.wurstclient.WurstClient;
 import net.wurstclient.event.EventManager;
 import net.wurstclient.events.CameraTransformViewBobbingListener.CameraTransformViewBobbingEvent;
+import net.wurstclient.hacks.SmoothHandBobHack;
 
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin implements AutoCloseable
@@ -43,6 +44,25 @@ public abstract class GameRendererMixin implements AutoCloseable
 		EventManager.fire(event);
 		
 		if(!event.isCancelled())
+			original.call(instance, cameraState, matrices);
+	}
+	
+	/**
+	 * Replaces the hand's bobbing with a smooth drop when SmoothHandBob is
+	 * enabled.
+	 */
+	@WrapOperation(
+		method = "renderItemInHand(Lnet/minecraft/client/renderer/state/level/CameraRenderState;FLorg/joml/Matrix4fc;)V",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/client/renderer/GameRenderer;bobView(Lnet/minecraft/client/renderer/state/level/CameraRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V"))
+	private void onBobHand(GameRenderer instance, CameraRenderState cameraState,
+		PoseStack matrices, Operation<Void> original)
+	{
+		SmoothHandBobHack smoothHandBob =
+			WurstClient.INSTANCE.getHax().smoothHandBobHack;
+		if(smoothHandBob.isEnabled())
+			smoothHandBob.bobHand(cameraState, matrices);
+		else
 			original.call(instance, cameraState, matrices);
 	}
 	

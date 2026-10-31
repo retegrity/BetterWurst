@@ -14,13 +14,13 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 
 import net.minecraft.core.BlockPos;
-import net.wurstclient.hacks.SearchHack;
+import net.wurstclient.hacks.BlockEspHack;
 
 /**
  * Converts a {@link HashSet} of block positions into an {@link ArrayList} of
  * vertices that can be used to render those blocks.
  * <p>
- * Used by {@link SearchHack Search} and similar hacks.
+ * Used by {@link BlockEspHack BlockESP} and similar hacks.
  */
 public enum BlockVertexCompiler
 {

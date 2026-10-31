@@ -46,7 +46,18 @@ public abstract class ChestEspGroup
 	
 	public final Stream<Setting> getSettings()
 	{
-		return Stream.of(enabled, color).filter(Objects::nonNull);
+		Stream<Setting> include = Stream.of(enabled);
+		Stream<Setting> colors = Stream.of(color);
+		return Stream.concat(Stream.concat(include, getExtraSettings()), colors)
+			.filter(Objects::nonNull);
+	}
+	
+	/**
+	 * Settings that appear between the include checkbox and the color.
+	 */
+	protected Stream<Setting> getExtraSettings()
+	{
+		return Stream.empty();
 	}
 	
 	public final int getColorI(int alpha)

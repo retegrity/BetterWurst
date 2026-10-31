@@ -9,7 +9,6 @@ package net.wurstclient.clickgui.components;
 
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.wurstclient.clickgui.ClickGui;
@@ -17,11 +16,11 @@ import net.wurstclient.clickgui.Component;
 import net.wurstclient.clickgui.screens.SelectFileScreen;
 import net.wurstclient.settings.FileSetting;
 import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
 
 public final class FileComponent extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	
 	private final FileSetting setting;
 	
@@ -78,8 +77,9 @@ public final class FileComponent extends Component
 		String labelText = setting.getName() + ":";
 		String buttonText = setting.getSelectedFileName();
 		context.guiRenderState.up();
-		context.text(TR, labelText, x1, y1 + 2, txtColor, false);
-		context.text(TR, buttonText, x3 + 2, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), labelText, x1, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), buttonText, x3 + 2, y1 + 2, txtColor,
+			false);
 	}
 	
 	private int getFillColor(boolean hovering)
@@ -90,14 +90,14 @@ public final class FileComponent extends Component
 	
 	private int getButtonWidth()
 	{
-		return TR.width(setting.getSelectedFileName());
+		return WurstFont.get().width(setting.getSelectedFileName());
 	}
 	
 	@Override
 	public int getDefaultWidth()
 	{
 		String text = setting.getName() + ":";
-		return TR.width(text) + getButtonWidth() + 6;
+		return WurstFont.get().width(text) + getButtonWidth() + 6;
 	}
 	
 	@Override

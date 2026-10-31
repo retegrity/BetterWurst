@@ -9,6 +9,7 @@ package net.wurstclient.hacks;
 
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Items;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
@@ -76,9 +77,36 @@ public final class NoFallHack extends Hack implements UpdateListener
 		if(isPaused())
 			return;
 		
+		LocalPlayer player = MC.player;
+		
+		// CreativeFlight in survival mode needs the packet every tick
+		boolean creativeFlying = WURST.getHax().creativeFlightHack.isEnabled()
+			&& player.getAbilities().flying;
+		
+		// only send the packet right before the fall would cause damage
+		// (fall distance after this tick > safe fall distance)
+		if(!creativeFlying && !willExceedSafeFallDistance(player))
+			return;
+		
 		// send packet to stop fall damage
-		MC.player.connection.send(new ServerboundMovePlayerPacket.StatusOnly(
-			true, MC.player.horizontalCollision));
+		player.connection.send(
+			new ServerboundMovePlayerPacket.PosRot(player.getX(), player.getY(),
+				player.getZ(), WURST.getRotationFaker().getServerYaw(),
+				WURST.getRotationFaker().getServerPitch(), true,
+				player.horizontalCollision));
+		
+		player.resetFallDistance();
+	}
+	
+	private boolean willExceedSafeFallDistance(LocalPlayer player)
+	{
+		if(player.tickCount <= 20)
+			return false;
+		
+		double safeFallDistance =
+			player.getAttributeValue(Attributes.SAFE_FALL_DISTANCE);
+		return player.fallDistance
+			- player.getDeltaMovement().y > safeFallDistance;
 	}
 	
 	private boolean isPaused()

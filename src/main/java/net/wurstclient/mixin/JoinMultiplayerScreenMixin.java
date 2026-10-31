@@ -15,7 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.llamalad7.mixinextras.sugar.Local;
 
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.ImageButton;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
@@ -30,6 +34,8 @@ import net.wurstclient.util.LastServerRememberer;
 public class JoinMultiplayerScreenMixin extends Screen
 {
 	private Button lastServerButton;
+	private Button serverFinderButton;
+	private Button cleanUpButton;
 	
 	private JoinMultiplayerScreenMixin(WurstClient wurst, Component title)
 	{
@@ -65,14 +71,14 @@ public class JoinMultiplayerScreenMixin extends Screen
 		
 		JoinMultiplayerScreen mpScreen = (JoinMultiplayerScreen)(Object)this;
 		
-		Button serverFinderButton = Button
+		serverFinderButton = Button
 			.builder(Component.nullToEmpty("Server Finder"),
 				b -> minecraft.setScreen(new ServerFinderScreen(mpScreen)))
 			.width(100).build();
 		addRenderableWidget(serverFinderButton);
 		footerTopRow.addChild(serverFinderButton);
 		
-		Button cleanUpButton = Button
+		cleanUpButton = Button
 			.builder(Component.nullToEmpty("Clean Up"),
 				b -> minecraft.setScreen(new CleanUpScreen(mpScreen)))
 			.width(100).build();
@@ -84,6 +90,7 @@ public class JoinMultiplayerScreenMixin extends Screen
 	private void onRepositionElements(CallbackInfo ci)
 	{
 		updateLastServerButton();
+		moveNoChatReportsButtons();
 	}
 	
 	@Inject(method = "join(Lnet/minecraft/client/multiplayer/ServerData;)V",
@@ -103,5 +110,24 @@ public class JoinMultiplayerScreenMixin extends Screen
 		lastServerButton.active = LastServerRememberer.getLastServer() != null;
 		lastServerButton.setX(width / 2 - 154);
 		lastServerButton.setY(6);
+	}
+	
+	/**
+	 * NoChatReports places its buttons to the right of the vanilla footer
+	 * buttons, which puts them behind Wurst's Server Finder and Clean Up
+	 * buttons. This moves them next to those two instead.
+	 */
+	@Unique
+	private void moveNoChatReportsButtons()
+	{
+		if(serverFinderButton == null || cleanUpButton == null)
+			return;
+		
+		int right =
+			Math.max(serverFinderButton.getRight(), cleanUpButton.getRight());
+		
+		for(GuiEventListener child : children())
+			if(child instanceof ImageButton || child instanceof CycleButton<?>)
+				((AbstractWidget)child).setX(right + 4);
 	}
 }

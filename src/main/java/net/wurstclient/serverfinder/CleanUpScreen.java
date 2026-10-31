@@ -234,7 +234,9 @@ public class CleanUpScreen extends Screen
 	{
 		for(AbstractWidget button : Screens.getWidgets(this))
 		{
-			if(!button.isHoveredOrFocused()
+			// Only the mouse position counts here. A clicked button keeps the
+			// keyboard focus, which would make its tooltip follow the mouse.
+			if(!button.isMouseOver(mouseX, mouseY)
 				|| !(button instanceof CleanUpButton))
 				continue;
 			

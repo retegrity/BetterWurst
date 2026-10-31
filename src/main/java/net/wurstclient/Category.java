@@ -16,6 +16,7 @@ public enum Category
 	CHAT("Chat"),
 	FUN("Fun"),
 	ITEMS("Items"),
+	RETRO("Retro"),
 	OTHER("Other");
 	
 	private final String name;

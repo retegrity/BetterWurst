@@ -29,6 +29,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.wurstclient.Category;
+import net.wurstclient.RotationFaker;
 import net.wurstclient.SearchTags;
 import net.wurstclient.WurstClient;
 import net.wurstclient.events.PacketOutputListener;
@@ -51,7 +52,8 @@ public final class AutoArmorHack extends Hack
 	
 	private final CheckboxSetting swapWhileMoving = new CheckboxSetting(
 		"Swap while moving",
-		"Whether or not to swap armor pieces while the player is moving.\n\n"
+		"Whether or not to swap armor pieces while the player is moving,"
+			+ " turning their head or using an item (eating, blocking, etc.).\n\n"
 			+ "\u00a7c\u00a7lWARNING:\u00a7r This would not be possible without cheats. It may raise suspicion.",
 		false);
 	
@@ -103,8 +105,7 @@ public final class AutoArmorHack extends Hack
 		LocalPlayer player = MC.player;
 		Inventory inventory = player.getInventory();
 		
-		if(!swapWhileMoving.isChecked()
-			&& player.input.getMoveVector().length() > 1e-5F)
+		if(!swapWhileMoving.isChecked() && isBusy(player))
 			return;
 		
 		// store slots and values of best armor pieces
@@ -165,6 +166,24 @@ public final class AutoArmorHack extends Hack
 			
 			break;
 		}
+	}
+	
+	/**
+	 * Whether a real player couldn't click in their inventory right now,
+	 * because they are walking, turning or using an item.
+	 */
+	private boolean isBusy(LocalPlayer player)
+	{
+		if(player.input.getMoveVector().length() > 1e-5F
+			|| player.isUsingItem())
+			return true;
+		
+		// turning the camera, or a hack turning the rotation that is sent
+		RotationFaker rotationFaker = WURST.getRotationFaker();
+		return player.getYRot() != player.yRotO
+			|| player.getXRot() != player.xRotO
+			|| rotationFaker.getSentYawDelta() != 0
+			|| rotationFaker.getSentPitchDelta() != 0;
 	}
 	
 	@Override

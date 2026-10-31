@@ -26,6 +26,7 @@ import net.wurstclient.clickgui.ClickGuiIcons;
 import net.wurstclient.hacks.TooManyHaxHack;
 import net.wurstclient.util.ChatUtils;
 import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
 
 public final class NavigatorMainScreen extends NavigatorScreen
 {
@@ -57,11 +58,15 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		ClickGui gui = WurstClient.INSTANCE.getGui();
 		int txtColor = gui.getTxtColor();
 		
+		// keep the search when coming back from a feature's settings
+		String oldText = searchBar == null ? "" : searchBar.getValue();
+		
 		Font tr = WurstClient.MC.font;
 		searchBar = new EditBox(tr, 0, 32, 200, 20, Component.literal(""));
 		searchBar.setTextColor(txtColor);
 		searchBar.setBordered(false);
 		searchBar.setMaxLength(128);
+		searchBar.setValue(oldText);
 		
 		addWidget(searchBar);
 		setFocused(searchBar);
@@ -226,7 +231,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		// search bar
 		if(!clickTimerRunning)
 		{
-			context.text(WurstClient.MC.font, "Search: ", middleX - 150, 32,
+			context.text(WurstFont.get(), "Search: ", middleX - 150, 32,
 				txtColor);
 			searchBar.extractRenderState(context, mouseX, mouseY, partialTicks);
 		}
@@ -261,7 +266,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 			context.guiRenderState.up();
 			
 			String[] lines = tooltip.split("\n");
-			Font tr = minecraft.font;
+			Font tr = WurstFont.get();
 			
 			int tw = 0;
 			int th = lines.length * tr.lineHeight;
@@ -308,6 +313,11 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		// click animation
 		if(clickTimerRunning)
 		{
+			// Screens get the time since the last frame instead of the
+			// partial tick, which made this animation jump in 4 steps.
+			partialTicks = WurstClient.MC.getDeltaTracker()
+				.getGameTimeDeltaPartialTick(true);
+			
 			if(feature != expandingFeature)
 				return;
 			
@@ -379,7 +389,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		// text
 		if(!clickTimerRunning)
 		{
-			Font tr = minecraft.font;
+			Font tr = WurstFont.get();
 			String buttonText = feature.getName();
 			int bx = area.x + 4;
 			int by = area.y + 4;

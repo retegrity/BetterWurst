@@ -66,7 +66,7 @@ public final class EditSliderScreen extends Screen
 		String value = valueField.getValue();
 		
 		if(MathUtils.isDouble(value))
-			slider.setValue(Double.parseDouble(value));
+			slider.setTypedValue(Double.parseDouble(value));
 		
 		minecraft.setScreen(prevScreen);
 	}

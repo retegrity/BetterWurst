@@ -27,6 +27,15 @@ public abstract class Popup
 	public abstract void handleMouseClick(int mouseX, int mouseY,
 		int mouseButton);
 	
+	/**
+	 * Called when the mouse wheel is scrolled while the mouse is over this
+	 * popup. Popups that don't scroll can ignore this.
+	 */
+	public void handleMouseScroll(double delta)
+	{
+		
+	}
+	
 	public abstract void render(GuiGraphicsExtractor context, int mouseX,
 		int mouseY);
 	

@@ -11,7 +11,6 @@ import java.util.Objects;
 
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Style;
@@ -21,11 +20,11 @@ import net.wurstclient.clickgui.screens.EditTextFieldScreen;
 import net.wurstclient.settings.TextFieldSetting;
 import net.wurstclient.util.ChatUtils;
 import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
 
 public final class TextFieldEditButton extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	private static final int TEXT_HEIGHT = 11;
 	
 	private final TextFieldSetting setting;
@@ -90,20 +89,21 @@ public final class TextFieldEditButton extends Component
 		// text
 		int txtColor = GUI.getTxtColor();
 		context.guiRenderState.up();
-		context.text(TR, setting.getName(), x1, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), setting.getName(), x1, y1 + 2, txtColor,
+			false);
 		String value = setting.getValue();
-		int maxWidth = getWidth() - TR.width("...") - 2;
-		int maxLength =
-			TR.getSplitter().plainIndexAtWidth(value, maxWidth, Style.EMPTY);
+		int maxWidth = getWidth() - WurstFont.get().width("...") - 2;
+		int maxLength = WurstFont.get().getSplitter().plainIndexAtWidth(value,
+			maxWidth, Style.EMPTY);
 		if(maxLength < value.length())
 			value = value.substring(0, maxLength) + "...";
-		context.text(TR, value, x1 + 2, y3 + 2, txtColor, false);
+		context.text(WurstFont.get(), value, x1 + 2, y3 + 2, txtColor, false);
 	}
 	
 	@Override
 	public int getDefaultWidth()
 	{
-		return TR.width(setting.getName()) + 4;
+		return WurstFont.get().width(setting.getName()) + 4;
 	}
 	
 	@Override

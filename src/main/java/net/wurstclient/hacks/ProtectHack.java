@@ -34,6 +34,7 @@ import net.wurstclient.settings.SwingHandSetting;
 import net.wurstclient.settings.SwingHandSetting.SwingHand;
 import net.wurstclient.settings.filterlists.EntityFilterList;
 import net.wurstclient.settings.filters.*;
+import net.wurstclient.util.AttackUtils;
 import net.wurstclient.util.EntityUtils;
 
 @DontSaveState
@@ -277,13 +278,16 @@ public final class ProtectHack extends Hack
 		{
 			WURST.getHax().autoSwordHack.setSlot(enemy);
 			
+			if(AttackUtils.shouldDelayAttack())
+				return;
+			
 			// check cooldown
 			if(!speed.isTimeToAttack())
 				return;
 			
 			// attack enemy
-			MC.gameMode.attack(MC.player, enemy);
-			swingHand.swing(InteractionHand.MAIN_HAND);
+			AttackUtils.attackAndSwing(enemy,
+				() -> swingHand.swing(InteractionHand.MAIN_HAND));
 			speed.resetTimer();
 		}
 	}

@@ -13,9 +13,11 @@ import java.util.Set;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import net.wurstclient.WurstClient;
 import net.wurstclient.clickgui.Component;
 import net.wurstclient.keybinds.PossibleKeybind;
 import net.wurstclient.util.ChatUtils;
+import net.wurstclient.util.WurstFont;
 import net.wurstclient.util.text.WText;
 
 public abstract class Setting
@@ -39,9 +41,24 @@ public abstract class Setting
 		return description.toString();
 	}
 	
+	/**
+	 * The description, wrapped to the given width. Descriptions that would
+	 * be taller than the screen are wrapped wider instead, so their tooltip
+	 * fits.
+	 */
 	public final String getWrappedDescription(int width)
 	{
-		return ChatUtils.wrapText(getDescription(), width);
+		String wrapped = ChatUtils.wrapText(getDescription(), width);
+		int maxLines = (WurstClient.MC.getWindow().getGuiScaledHeight() - 8)
+			/ WurstFont.get().lineHeight;
+		
+		while(wrapped.split("\n").length > maxLines && width < 400)
+		{
+			width += 50;
+			wrapped = ChatUtils.wrapText(getDescription(), width);
+		}
+		
+		return wrapped;
 	}
 	
 	public abstract Component getComponent();

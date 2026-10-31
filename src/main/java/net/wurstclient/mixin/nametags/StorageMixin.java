@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 import com.llamalad7.mixinextras.injector.ModifyReceiver;
@@ -27,6 +29,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.WurstClient;
+import net.wurstclient.hacks.ItemEspHack;
 import net.wurstclient.hacks.NameTagsHack;
 
 @Mixin(NameTagFeatureRenderer.Storage.class)
@@ -50,13 +53,20 @@ public class StorageMixin
 		CameraRenderState state)
 	{
 		NameTagsHack nameTags = WurstClient.INSTANCE.getHax().nameTagsHack;
-		if(!nameTags.isEnabled())
+		ItemEspHack itemEsp = WurstClient.INSTANCE.getHax().itemEspHack;
+		
+		float userScale;
+		if(itemEsp.isRenderingNameTag())
+			userScale = itemEsp.getNameScale();
+		else if(nameTags.isEnabled())
+			userScale = nameTags.getScale();
+		else
 		{
 			original.call(matrices, x, y, z);
 			return;
 		}
 		
-		float scale = 0.025F * nameTags.getScale();
+		float scale = 0.025F * userScale;
 		double distance = Math.sqrt(d);
 		if(distance > 10)
 			scale *= distance / 10;
@@ -93,7 +103,9 @@ public class StorageMixin
 	{
 		NameTagsHack nameTags = WurstClient.INSTANCE.getHax().nameTagsHack;
 		
-		if(nameTags.isEnabled() && nameTags.isSeeThrough())
+		// item names are handled in brightenItemNames()
+		if(nameTags.isEnabled() && nameTags.isSeeThrough()
+			&& !isRenderingItemName())
 			if(originalList == nameTagSubmitsNormal)
 				return nameTagSubmitsSeethrough;
 			
@@ -115,10 +127,29 @@ public class StorageMixin
 	{
 		NameTagsHack nameTags = WurstClient.INSTANCE.getHax().nameTagsHack;
 		
-		if(nameTags.isEnabled() && nameTags.isSeeThrough())
+		// item names are handled in brightenItemNames()
+		if(nameTags.isEnabled() && nameTags.isSeeThrough()
+			&& !isRenderingItemName())
 			if(originalList == nameTagSubmitsSeethrough)
 				return nameTagSubmitsNormal;
 			
 		return originalList;
+	}
+	
+	/**
+	 * Vanilla draws the see-through copy of a name tag dimmed, so ItemESP's
+	 * item names would look faded behind blocks. This makes them fully bright.
+	 */
+	@ModifyConstant(
+		method = "add(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/world/phys/Vec3;ILnet/minecraft/network/chat/Component;ZIDLnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
+		constant = @Constant(intValue = -2130706433, ordinal = 0))
+	private int brightenItemNames(int color)
+	{
+		return isRenderingItemName() ? -1 : color;
+	}
+	
+	private boolean isRenderingItemName()
+	{
+		return WurstClient.INSTANCE.getHax().itemEspHack.isRenderingNameTag();
 	}
 }

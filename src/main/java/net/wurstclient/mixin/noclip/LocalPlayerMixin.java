@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.phys.Vec3;
 import net.wurstclient.WurstClient;
 
 @Mixin(LocalPlayer.class)
@@ -31,6 +33,17 @@ public abstract class LocalPlayerMixin
 	{
 		return original
 			&& WurstClient.INSTANCE.getHax().noClipHack.shouldSendPosition();
+	}
+	
+	/**
+	 * Lets NoClip's Old mode turn off collision right before moving.
+	 */
+	@Inject(
+		method = "move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V",
+		at = @At("HEAD"))
+	private void onMove(MoverType type, Vec3 offset, CallbackInfo ci)
+	{
+		WurstClient.INSTANCE.getHax().noClipHack.onPlayerMove();
 	}
 	
 	/**

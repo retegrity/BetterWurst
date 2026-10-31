@@ -621,6 +621,18 @@ public class PathFinder
 		return true;
 	}
 	
+	/**
+	 * Like {@link #getProcessor()}, but walks paths more like a human, see
+	 * {@link SmoothWalkPathProcessor}.
+	 */
+	public PathProcessor getSmoothProcessor()
+	{
+		if(abilities.flying())
+			return getProcessor();
+		
+		return new SmoothWalkPathProcessor(path);
+	}
+	
 	public PathProcessor getProcessor()
 	{
 		if(abilities.flying())

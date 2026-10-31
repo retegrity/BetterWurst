@@ -25,6 +25,7 @@ import net.wurstclient.settings.SliderSetting.ValueDisplay;
 import net.wurstclient.settings.SwingHandSetting;
 import net.wurstclient.settings.SwingHandSetting.SwingHand;
 import net.wurstclient.settings.filterlists.EntityFilterList;
+import net.wurstclient.util.AttackUtils;
 import net.wurstclient.util.EntityUtils;
 
 @SearchTags({"trigger bot", "AutoAttack", "auto attack", "AutoClicker",
@@ -42,8 +43,8 @@ public final class TriggerBotHack extends Hack
 		new SliderSetting("Speed randomization",
 			"Helps you bypass anti-cheat plugins by varying the delay between"
 				+ " attacks.\n\n" + "\u00b1100ms is recommended for Vulcan.\n\n"
-				+ "0 (off) is fine for NoCheat+, AAC, Grim, Verus, Spartan, and"
-				+ " vanilla servers.",
+				+ "0 (off) is fine for AAC, Grim, Verus, Spartan, and vanilla"
+				+ " servers.",
 			100, 0, 1000, 50, ValueDisplay.INTEGER.withPrefix("\u00b1")
 				.withSuffix("ms").withLabel(0, "off"));
 	
@@ -155,6 +156,12 @@ public final class TriggerBotHack extends Hack
 		
 		WURST.getHax().autoSwordHack.setSlot(target);
 		
+		if(WURST.getHax().criticalsHack.shouldDelayAttack())
+			return;
+		
+		if(AttackUtils.shouldDelayAttack())
+			return;
+		
 		if(simulateMouseClick.isChecked())
 		{
 			IKeyMapping.get(MC.options.keyAttack).simulatePress(true);
@@ -162,8 +169,8 @@ public final class TriggerBotHack extends Hack
 			
 		}else
 		{
-			MC.gameMode.attack(player, target);
-			swingHand.swing(InteractionHand.MAIN_HAND);
+			AttackUtils.attackAndSwing(target,
+				() -> swingHand.swing(InteractionHand.MAIN_HAND));
 		}
 		
 		speed.resetTimer(speedRandMS.getValue());

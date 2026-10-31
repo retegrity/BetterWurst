@@ -9,7 +9,6 @@ package net.wurstclient.clickgui.components;
 
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.wurstclient.clickgui.ClickGui;
@@ -17,11 +16,11 @@ import net.wurstclient.clickgui.ClickGuiIcons;
 import net.wurstclient.clickgui.Component;
 import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
 
 public final class CheckboxComponent extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	private static final int BOX_SIZE = 11;
 	
 	private final CheckboxSetting setting;
@@ -85,7 +84,8 @@ public final class CheckboxComponent extends Component
 		
 		// text
 		String name = setting.getName();
-		context.text(TR, name, x3 + 2, y1 + 2, GUI.getTxtColor(), false);
+		context.text(WurstFont.get(), name, x3 + 2, y1 + 2, GUI.getTxtColor(),
+			false);
 	}
 	
 	private int getFillColor(boolean hovering)
@@ -109,7 +109,7 @@ public final class CheckboxComponent extends Component
 	@Override
 	public int getDefaultWidth()
 	{
-		return BOX_SIZE + TR.width(setting.getName()) + 2;
+		return BOX_SIZE + WurstFont.get().width(setting.getName()) + 2;
 	}
 	
 	@Override

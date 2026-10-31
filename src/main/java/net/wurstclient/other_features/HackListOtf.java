@@ -12,12 +12,14 @@ import java.util.Comparator;
 
 import net.wurstclient.DontBlock;
 import net.wurstclient.SearchTags;
-import net.wurstclient.WurstClient;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.other_feature.OtherFeature;
 import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.settings.ColorSetting;
 import net.wurstclient.settings.EnumSetting;
+import net.wurstclient.settings.SliderSetting;
+import net.wurstclient.settings.SliderSetting.ValueDisplay;
+import net.wurstclient.util.WurstFont;
 
 @SearchTags({"hack list", "HakList", "hak list", "HacksList", "hacks list",
 	"HaxList", "hax list", "ArrayList", "array list", "ModList", "mod list",
@@ -36,9 +38,58 @@ public final class HackListOtf extends OtherFeature
 			+ "\nChange this to \u00a7lRight\u00a7r when using TabGUI.",
 		Position.values(), Position.LEFT);
 	
+	private final SliderSetting horizontalOffset =
+		new SliderSetting("Horizontal offset",
+			"Moves the HackList away from the side of the screen it's on.", 0,
+			0, 10, 1, ValueDisplay.INTEGER.withSuffix("px"));
+	
+	private final SliderSetting verticalOffset =
+		new SliderSetting("Vertical offset", "Moves the HackList down.", 0, 0,
+			10, 1, ValueDisplay.INTEGER.withSuffix("px"));
+	
 	private final ColorSetting color = new ColorSetting("Color",
 		"Color of the HackList text.\n"
 			+ "Only visible when \u00a76RainbowUI\u00a7r is disabled.",
+		Color.WHITE);
+	
+	private final EnumSetting<ColorMode> colorMode = new EnumSetting<>(
+		"Color mode",
+		"\u00a7lStatic\u00a7r uses the color above (or \u00a76RainbowUI\u00a7r"
+			+ " if it's enabled).\n\n"
+			+ "\u00a7lRainbow\u00a7r gives every entry its own color, so a"
+			+ " rainbow flows down the list.",
+		ColorMode.values(), ColorMode.STATIC);
+	
+	private final SliderSetting rainbowSpeed =
+		new SliderSetting("Rainbow speed", "How fast the rainbow moves.", 0.05,
+			0.01, 0.2, 0.005, ValueDisplay.DECIMAL);
+	
+	private final SliderSetting rainbowSpread =
+		new SliderSetting("Rainbow spread",
+			"How much the color changes from one entry to the next.", 0.01,
+			0.001, 0.05, 0.001, ValueDisplay.DECIMAL);
+	
+	private final SliderSetting rainbowSaturation = new SliderSetting(
+		"Rainbow saturation", 1, 0, 1, 0.01, ValueDisplay.PERCENTAGE);
+	
+	private final CheckboxSetting background = new CheckboxSetting("Background",
+		"Draws a darkened background behind the entries.", false);
+	
+	private final ColorSetting backgroundColor =
+		new ColorSetting("Background color", new Color(25, 25, 25));
+	
+	private final SliderSetting backgroundOpacity = new SliderSetting(
+		"Background opacity", 0.5, 0, 1, 0.01, ValueDisplay.PERCENTAGE);
+	
+	private final CheckboxSetting outline = new CheckboxSetting("Outline",
+		"Draws an outline around the entries.", false);
+	
+	private final SliderSetting outlineWidth = new SliderSetting(
+		"Outline width", 1, 1, 5, 1, ValueDisplay.INTEGER.withSuffix("px"));
+	
+	private final ColorSetting outlineColor = new ColorSetting("Outline color",
+		"Color of the outline. In \u00a7lRainbow\u00a7r color mode, the"
+			+ " outline follows the rainbow instead.",
 		Color.WHITE);
 	
 	private final EnumSetting<SortBy> sortBy = new EnumSetting<>("Sort by",
@@ -62,7 +113,19 @@ public final class HackListOtf extends OtherFeature
 		
 		addSetting(mode);
 		addSetting(position);
+		addSetting(horizontalOffset);
+		addSetting(verticalOffset);
 		addSetting(color);
+		addSetting(colorMode);
+		addSetting(rainbowSpeed);
+		addSetting(rainbowSpread);
+		addSetting(rainbowSaturation);
+		addSetting(background);
+		addSetting(backgroundColor);
+		addSetting(backgroundOpacity);
+		addSetting(outline);
+		addSetting(outlineWidth);
+		addSetting(outlineColor);
 		addSetting(sortBy);
 		addSetting(revSort);
 		addSetting(animations);
@@ -76,6 +139,16 @@ public final class HackListOtf extends OtherFeature
 	public Position getPosition()
 	{
 		return position.getSelected();
+	}
+	
+	public int getHorizontalOffset()
+	{
+		return horizontalOffset.getValueI();
+	}
+	
+	public int getVerticalOffset()
+	{
+		return verticalOffset.getValueI();
 	}
 	
 	public boolean isAnimations()
@@ -118,6 +191,67 @@ public final class HackListOtf extends OtherFeature
 	public int getColor(int alpha)
 	{
 		return color.getColorI(alpha);
+	}
+	
+	public boolean isRainbow()
+	{
+		return colorMode.getSelected() == ColorMode.RAINBOW;
+	}
+	
+	/**
+	 * Returns the rainbow color (RGB) of the given entry at the given time,
+	 * like Meteor's active modules list.
+	 */
+	public int getRainbowColor(double seconds, int index)
+	{
+		double hue = seconds * rainbowSpeed.getValue()
+			+ index * rainbowSpread.getValue();
+		return Color.HSBtoRGB((float)(hue % 1), rainbowSaturation.getValueF(),
+			1) & 0xFFFFFF;
+	}
+	
+	public boolean hasBackground()
+	{
+		return background.isChecked();
+	}
+	
+	public int getBackgroundColor()
+	{
+		return backgroundColor.getColorI(backgroundOpacity.getValueF());
+	}
+	
+	public boolean hasOutline()
+	{
+		return outline.isChecked();
+	}
+	
+	public int getOutlineWidth()
+	{
+		return outlineWidth.getValueI();
+	}
+	
+	public int getOutlineColor()
+	{
+		return outlineColor.getColorI(1F);
+	}
+	
+	public static enum ColorMode
+	{
+		STATIC("Static"),
+		RAINBOW("Rainbow");
+		
+		private final String name;
+		
+		private ColorMode(String name)
+		{
+			this.name = name;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return name;
+		}
 	}
 	
 	public static enum Mode
@@ -167,7 +301,7 @@ public final class HackListOtf extends OtherFeature
 		NAME("Name", (a, b) -> a.getName().compareToIgnoreCase(b.getName())),
 		
 		WIDTH("Width", Comparator
-			.comparingInt(h -> WurstClient.MC.font.width(h.getRenderName())));
+			.comparingInt(h -> WurstFont.get().width(h.getRenderName())));
 		
 		private final String name;
 		private final Comparator<Hack> comparator;

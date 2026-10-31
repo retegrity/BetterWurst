@@ -24,6 +24,7 @@ import net.wurstclient.settings.SliderSetting.ValueDisplay;
 import net.wurstclient.settings.SwingHandSetting;
 import net.wurstclient.settings.SwingHandSetting.SwingHand;
 import net.wurstclient.settings.filterlists.EntityFilterList;
+import net.wurstclient.util.AttackUtils;
 import net.wurstclient.util.EntityUtils;
 import net.wurstclient.util.RotationUtils;
 
@@ -115,17 +116,28 @@ public final class MultiAuraHack extends Hack implements UpdateListener
 		
 		WURST.getHax().autoSwordHack.setSlot(entities.get(0));
 		
+		if(WURST.getHax().criticalsHack.shouldDelayAttack())
+			return;
+		
+		if(AttackUtils.shouldDelayAttack())
+			return;
+			
 		// attack entities
+		// (1.8 servers expect a swing before each attack)
+		boolean swingFirst = AttackUtils.swingBeforeEachAttack();
 		for(Entity entity : entities)
 		{
 			RotationUtils
 				.getNeededRotations(entity.getBoundingBox().getCenter())
 				.sendPlayerLookPacket();
 			
+			if(swingFirst)
+				swingHand.swing(InteractionHand.MAIN_HAND);
 			MC.gameMode.attack(MC.player, entity);
 		}
 		
-		swingHand.swing(InteractionHand.MAIN_HAND);
+		if(!swingFirst)
+			swingHand.swing(InteractionHand.MAIN_HAND);
 		speed.resetTimer();
 	}
 }

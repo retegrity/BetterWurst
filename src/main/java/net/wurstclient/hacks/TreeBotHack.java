@@ -10,6 +10,7 @@ package net.wurstclient.hacks;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -19,14 +20,24 @@ import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.Category;
+import net.wurstclient.RotationFaker;
 import net.wurstclient.SearchTags;
 import net.wurstclient.WurstClient;
 import net.wurstclient.ai.PathFinder;
 import net.wurstclient.ai.PathPos;
 import net.wurstclient.ai.PathProcessor;
+import net.wurstclient.ai.SmoothWalkPathProcessor;
 import net.wurstclient.commands.PathCmd;
 import net.wurstclient.events.RenderListener;
 import net.wurstclient.events.UpdateListener;
@@ -34,6 +45,7 @@ import net.wurstclient.hack.DontSaveState;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.hacks.treebot.Tree;
 import net.wurstclient.hacks.treebot.TreeBotUtils;
+import net.wurstclient.settings.EnumSetting;
 import net.wurstclient.settings.FaceTargetSetting;
 import net.wurstclient.settings.FaceTargetSetting.FaceTarget;
 import net.wurstclient.settings.SliderSetting;
@@ -44,6 +56,8 @@ import net.wurstclient.util.BlockBreaker;
 import net.wurstclient.util.BlockBreaker.BlockBreakingParams;
 import net.wurstclient.util.BlockUtils;
 import net.wurstclient.util.OverlayRenderer;
+import net.wurstclient.util.Rotation;
+import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"tree bot"})
 @DontSaveState
@@ -53,6 +67,17 @@ public final class TreeBotHack extends Hack
 	private final SliderSetting range = new SliderSetting("Range",
 		"How far TreeBot will reach to break blocks.", 4.5, 1, 6, 0.05,
 		ValueDisplay.DECIMAL);
+	
+	private final EnumSetting<Mode> mode = new EnumSetting<>(
+		"Rotations/Pathfinding",
+		"\u00a7lSmooth\u00a7r turns smoothly like a human, both when breaking"
+			+ " blocks and when walking, and walks straight towards the tree"
+			+ " instead of from block to block. Blocks are only broken once the"
+			+ " rotation that the server sees is actually looking at them.\n\n"
+			+ "\u00a7lOld\u00a7r snaps to each block and walks from block"
+			+ " center to block center, like TreeBot always did. Only this mode"
+			+ " uses the Face target setting.",
+		Mode.values(), Mode.SMOOTH);
 	
 	private final FaceTargetSetting faceTarget =
 		FaceTargetSetting.withoutPacketSpam(this, FaceTarget.SERVER);
@@ -68,11 +93,21 @@ public final class TreeBotHack extends Hack
 	private BlockPos currentBlock;
 	private final OverlayRenderer overlay = new OverlayRenderer();
 	
+	// after a tree is chopped, waits for its logs to be picked up
+	private static final int COLLECT_TICKS = 100;
+	private BlockPos collectCenter;
+	private int collectTicks;
+	
+	// where on the block Smooth mode is aiming
+	private BlockPos aimBlock;
+	private Vec3 aimPoint;
+	
 	public TreeBotHack()
 	{
 		super("TreeBot");
 		setCategory(Category.BLOCKS);
 		addSetting(range);
+		addSetting(mode);
 		addSetting(faceTarget);
 		addSetting(swingHand);
 	}
@@ -88,6 +123,9 @@ public final class TreeBotHack extends Hack
 		
 		if(tree != null && !tree.getLogs().isEmpty())
 			return getName() + " [Chopping]";
+		
+		if(collectCenter != null)
+			return getName() + " [Collecting]";
 		
 		return getName();
 	}
@@ -112,6 +150,12 @@ public final class TreeBotHack extends Hack
 		angleFinder = null;
 		processor = null;
 		tree = null;
+		collectCenter = null;
+		aimBlock = null;
+		aimPoint = null;
+		
+		if(mode.getSelected() == Mode.SMOOTH)
+			WURST.getRotationFaker().releaseManagedRotation();
 		
 		if(currentBlock != null)
 		{
@@ -126,6 +170,12 @@ public final class TreeBotHack extends Hack
 	@Override
 	public void onUpdate()
 	{
+		if(collectCenter != null)
+		{
+			collectLogs();
+			return;
+		}
+		
 		if(treeFinder != null)
 		{
 			goToTree();
@@ -142,6 +192,9 @@ public final class TreeBotHack extends Hack
 		
 		if(tree.getLogs().isEmpty())
 		{
+			// wait for the logs to be picked up before moving on
+			collectCenter = tree.getStump();
+			collectTicks = COLLECT_TICKS;
 			tree = null;
 			return;
 		}
@@ -223,6 +276,12 @@ public final class TreeBotHack extends Hack
 		// select tool
 		WURST.getHax().autoToolHack.equipBestTool(pos, false, true, 0);
 		
+		if(mode.getSelected() == Mode.SMOOTH)
+		{
+			breakBlockSmoothly(pos, params);
+			return true;
+		}
+		
 		// face block
 		faceTarget.face(params.hitVec());
 		
@@ -234,6 +293,174 @@ public final class TreeBotHack extends Hack
 		overlay.updateProgress();
 		
 		return true;
+	}
+	
+	/**
+	 * Turns towards the block like a human and only damages it once the
+	 * rotation that the server got with the last movement packet is actually
+	 * looking at it. So it never breaks blocks it isn't looking at, or
+	 * through other blocks.
+	 */
+	private void breakBlockSmoothly(BlockPos pos, BlockBreakingParams params)
+	{
+		RotationFaker rotationFaker = WURST.getRotationFaker();
+		rotationFaker.faceVectorHumanly(getAimPoint(pos, params), 30, 12, 5,
+			true);
+		
+		BlockHitResult hit =
+			raycast(rotationFaker.getSentYaw(), rotationFaker.getSentPitch());
+		if(hit == null)
+			return;
+			
+		// a plant (grass, flowers, etc.) is in the way, so break it, like a
+		// real click would
+		BlockPos hitPos = hit.getBlockPos();
+		if(!pos.equals(hitPos))
+		{
+			if(isInstantlyBreakable(hitPos)
+				&& MC.gameMode.continueDestroyBlock(hitPos, hit.getDirection()))
+				swingHand.swing(InteractionHand.MAIN_HAND);
+			return;
+		}
+		
+		if(MC.gameMode.continueDestroyBlock(pos, hit.getDirection()))
+			swingHand.swing(InteractionHand.MAIN_HAND);
+		
+		overlay.updateProgress();
+	}
+	
+	/**
+	 * Where on the block to aim. Plants like grass don't block the line of
+	 * sight that BlockBreaker checks, but they do block the crosshair, so
+	 * this looks for a point on the side that the crosshair can actually
+	 * reach, as close to the middle of it as possible. The point is kept
+	 * while it still works, so the aim doesn't jump around.
+	 */
+	private Vec3 getAimPoint(BlockPos pos, BlockBreakingParams params)
+	{
+		if(pos.equals(aimBlock) && aimPoint != null && canSee(pos, aimPoint))
+			return aimPoint;
+		
+		aimBlock = pos;
+		aimPoint = findVisiblePoint(pos, params);
+		return aimPoint;
+	}
+	
+	private Vec3 findVisiblePoint(BlockPos pos, BlockBreakingParams params)
+	{
+		Vec3 center = params.hitVec();
+		Direction.Axis axis = params.side().getAxis();
+		Vec3 u =
+			axis == Direction.Axis.X ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
+		Vec3 v =
+			axis == Direction.Axis.Z ? new Vec3(0, 1, 0) : new Vec3(0, 0, 1);
+		
+		Vec3 best = null;
+		int bestDistance = Integer.MAX_VALUE;
+		for(int a = -3; a <= 3; a++)
+			for(int b = -3; b <= 3; b++)
+			{
+				int distance = a * a + b * b;
+				if(distance >= bestDistance)
+					continue;
+				
+				Vec3 point =
+					center.add(u.scale(a * 0.12)).add(v.scale(b * 0.12));
+				if(!canSee(pos, point))
+					continue;
+				
+				best = point;
+				bestDistance = distance;
+			}
+		
+		return best != null ? best : center;
+	}
+	
+	/**
+	 * Whether the crosshair would hit the block when looking at this point.
+	 */
+	private boolean canSee(BlockPos pos, Vec3 point)
+	{
+		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 end = point.add(point.subtract(eyes).normalize().scale(0.1));
+		BlockHitResult hit = MC.level.clip(new ClipContext(eyes, end,
+			ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, MC.player));
+		return hit.getType() == HitResult.Type.BLOCK
+			&& pos.equals(hit.getBlockPos());
+	}
+	
+	private boolean isInstantlyBreakable(BlockPos pos)
+	{
+		return BlockUtils.getState(pos).getDestroySpeed(MC.level, pos) == 0;
+	}
+	
+	private BlockHitResult raycast(float yaw, float pitch)
+	{
+		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 end = eyes
+			.add(new Rotation(yaw, pitch).toLookVec().scale(range.getValue()));
+		BlockHitResult hit = MC.level.clip(new ClipContext(eyes, end,
+			ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, MC.player));
+		return hit.getType() == HitResult.Type.BLOCK ? hit : null;
+	}
+	
+	/**
+	 * Walks to the logs that dropped from the tree, so they are picked up.
+	 * Gives up after a few seconds, e.g. if a log landed somewhere it can't
+	 * get to.
+	 */
+	private void collectLogs()
+	{
+		ItemEntity item = collectTicks-- > 0 ? findDroppedLog() : null;
+		if(item == null)
+		{
+			PathProcessor.releaseControls();
+			collectCenter = null;
+			return;
+		}
+		
+		// no room for it in the inventory, so don't wait for it
+		LocalPlayer player = MC.player;
+		Inventory inventory = player.getInventory();
+		if(inventory.getFreeSlot() == -1
+			&& inventory.getSlotWithRemainingSpace(item.getItem()) == -1)
+		{
+			collectTicks = 0;
+			return;
+		}
+		
+		PathProcessor.lockControls();
+		
+		// close enough, it gets picked up as soon as it can be
+		if(player.getBoundingBox().inflate(1, 0.5, 1)
+			.intersects(item.getBoundingBox()))
+			return;
+		
+		if(mode.getSelected() == Mode.SMOOTH)
+		{
+			float yawLeft =
+				SmoothWalkPathProcessor.turnCameraTowards(item.position());
+			if(Math.abs(yawLeft) > 45)
+				return;
+			
+		}else
+			WURST.getRotationFaker()
+				.faceVectorClientIgnorePitch(item.position());
+		
+		MC.options.keyUp.setDown(true);
+		if(player.horizontalCollision && player.onGround())
+			MC.options.keyJump.setDown(true);
+	}
+	
+	private ItemEntity findDroppedLog()
+	{
+		AABB area = new AABB(collectCenter).inflate(6, 4, 6);
+		return MC.level
+			.getEntitiesOfClass(ItemEntity.class, area,
+				e -> e.isAlive() && e.getItem().is(ItemTags.LOGS))
+			.stream()
+			.min(Comparator.comparingDouble(e -> e.distanceToSqr(MC.player)))
+			.orElse(null);
 	}
 	
 	@Override
@@ -303,7 +530,8 @@ public final class TreeBotHack extends Hack
 		public TreeBotPathProcessor(TreeBotPathFinder pathFinder)
 		{
 			this.pathFinder = pathFinder;
-			processor = pathFinder.getProcessor();
+			processor = mode.getSelected() == Mode.SMOOTH
+				? pathFinder.getSmoothProcessor() : pathFinder.getProcessor();
 		}
 		
 		public void goToGoal()
@@ -466,6 +694,25 @@ public final class TreeBotHack extends Hack
 		public void reset()
 		{
 			angleFinder = new AngleFinder(angleFinder);
+		}
+	}
+	
+	private enum Mode
+	{
+		SMOOTH("Smooth"),
+		OLD("Old");
+		
+		private final String name;
+		
+		private Mode(String name)
+		{
+			this.name = name;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return name;
 		}
 	}
 }

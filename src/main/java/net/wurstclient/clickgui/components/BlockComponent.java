@@ -9,7 +9,6 @@ package net.wurstclient.clickgui.components;
 
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.item.ItemStack;
@@ -22,11 +21,11 @@ import net.wurstclient.clickgui.screens.EditBlockScreen;
 import net.wurstclient.settings.BlockSetting;
 import net.wurstclient.util.RenderUtils;
 import net.wurstclient.util.text.WText;
+import net.wurstclient.util.WurstFont;
 
 public final class BlockComponent extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	private static final int BLOCK_WIDTH = 24;
 	
 	private final BlockSetting setting;
@@ -86,7 +85,8 @@ public final class BlockComponent extends Component
 		
 		// text
 		String name = setting.getName() + ":";
-		context.text(TR, name, x1, y1 + 2, GUI.getTxtColor(), false);
+		context.text(WurstFont.get(), name, x1, y1 + 2, GUI.getTxtColor(),
+			false);
 		
 		// block
 		ItemStack stack = new ItemStack(setting.getBlock());
@@ -132,7 +132,7 @@ public final class BlockComponent extends Component
 	@Override
 	public int getDefaultWidth()
 	{
-		return TR.width(setting.getName() + ":") + BLOCK_WIDTH + 4;
+		return WurstFont.get().width(setting.getName() + ":") + BLOCK_WIDTH + 4;
 	}
 	
 	@Override

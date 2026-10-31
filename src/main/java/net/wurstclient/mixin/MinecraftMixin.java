@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.UserApiService;
@@ -25,6 +27,7 @@ import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import com.mojang.blaze3d.platform.WindowEventHandler;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import net.minecraft.client.User;
 import net.minecraft.client.main.GameConfig;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
@@ -42,6 +45,7 @@ import net.wurstclient.events.RightClickListener.RightClickEvent;
 import net.wurstclient.mixinterface.ILocalPlayer;
 import net.wurstclient.mixinterface.IMinecraft;
 import net.wurstclient.mixinterface.IMultiPlayerGameMode;
+import net.wurstclient.util.WurstWindowStyle;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin
@@ -55,6 +59,9 @@ public abstract class MinecraftMixin
 	public MultiPlayerGameMode gameMode;
 	@Shadow
 	public LocalPlayer player;
+	@Shadow
+	@Final
+	public Options options;
 	
 	@Unique
 	private YggdrasilAuthenticationService wurstAuthenticationService;
@@ -96,6 +103,29 @@ public abstract class MinecraftMixin
 		EventManager.fire(HandleInputEvent.INSTANCE);
 	}
 	
+	/**
+	 * Updates the window title and icon of WurstOptions' "Wurst Minecraft
+	 * window style" when it's turned on or off.
+	 */
+	@Inject(method = "tick()V", at = @At("HEAD"))
+	private void onTickHead(CallbackInfo ci)
+	{
+		WurstWindowStyle.update();
+	}
+	
+	/**
+	 * Replaces the whole window title with "Wurst Client" and the version,
+	 * without the "*" that vanilla adds for modded games.
+	 */
+	@Inject(method = "createTitle()Ljava/lang/String;",
+		at = @At("HEAD"),
+		cancellable = true)
+	private void onCreateTitle(CallbackInfoReturnable<String> cir)
+	{
+		if(WurstWindowStyle.isEnabled())
+			cir.setReturnValue(WurstWindowStyle.getTitle());
+	}
+	
 	@Inject(method = "startAttack()Z",
 		at = @At(value = "FIELD",
 			target = "Lnet/minecraft/client/Minecraft;hitResult:Lnet/minecraft/world/phys/HitResult;",
@@ -122,6 +152,55 @@ public abstract class MinecraftMixin
 		
 		if(event.isCancelled())
 			ci.cancel();
+	}
+	
+	/**
+	 * MultiActions: lets the player attack and break blocks while using an
+	 * item. The vanilla release logic is kept so that items still stop being
+	 * used when the use key is let go.
+	 */
+	@WrapOperation(method = "handleKeybinds()V",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/client/player/LocalPlayer;isUsingItem()Z",
+			ordinal = 0))
+	private boolean wurstMultiActionsHandleKeybinds(LocalPlayer instance,
+		Operation<Boolean> original)
+	{
+		boolean using = original.call(instance);
+		if(!using
+			|| !WurstClient.INSTANCE.getHax().multiActionsHack.isEnabled())
+			return using;
+		
+		if(!options.keyUse.isDown())
+			gameMode.releaseUsingItem(instance);
+		
+		return false;
+	}
+	
+	@WrapOperation(method = "continueAttack(Z)V",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/client/player/LocalPlayer;isUsingItem()Z",
+			ordinal = 0))
+	private boolean wurstMultiActionsContinueAttack(LocalPlayer instance,
+		Operation<Boolean> original)
+	{
+		if(WurstClient.INSTANCE.getHax().multiActionsHack.isEnabled())
+			return false;
+		
+		return original.call(instance);
+	}
+	
+	@WrapOperation(method = "startUseItem()V",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;isDestroying()Z",
+			ordinal = 0))
+	private boolean wurstMultiActionsStartUseItem(MultiPlayerGameMode instance,
+		Operation<Boolean> original)
+	{
+		if(WurstClient.INSTANCE.getHax().multiActionsHack.isEnabled())
+			return false;
+		
+		return original.call(instance);
 	}
 	
 	@Inject(method = "pickBlockOrEntity()V", at = @At("HEAD"))

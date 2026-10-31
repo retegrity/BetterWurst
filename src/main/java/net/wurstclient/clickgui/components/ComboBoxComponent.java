@@ -11,7 +11,6 @@ import java.util.Arrays;
 
 import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.wurstclient.clickgui.ClickGui;
@@ -20,11 +19,11 @@ import net.wurstclient.clickgui.ComboBoxPopup;
 import net.wurstclient.clickgui.Component;
 import net.wurstclient.settings.EnumSetting;
 import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
 
 public final class ComboBoxComponent<T extends Enum<T>> extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	private static final int ARROW_SIZE = 11;
 	
 	private final EnumSetting<T> setting;
@@ -36,7 +35,7 @@ public final class ComboBoxComponent<T extends Enum<T>> extends Component
 	{
 		this.setting = setting;
 		popupWidth = Arrays.stream(setting.getValues()).map(T::toString)
-			.mapToInt(s -> TR.width(s)).max().getAsInt();
+			.mapToInt(s -> WurstFont.get().width(s)).max().getAsInt();
 		
 		setWidth(getDefaultWidth());
 		setHeight(getDefaultHeight());
@@ -127,8 +126,8 @@ public final class ComboBoxComponent<T extends Enum<T>> extends Component
 		String name = setting.getName();
 		String value = "" + setting.getSelected();
 		int txtColor = GUI.getTxtColor();
-		context.text(TR, name, x1, y1 + 2, txtColor, false);
-		context.text(TR, value, x4 + 2, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), name, x1, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), value, x4 + 2, y1 + 2, txtColor, false);
 	}
 	
 	private int getFillColor(boolean hovering)
@@ -140,7 +139,8 @@ public final class ComboBoxComponent<T extends Enum<T>> extends Component
 	@Override
 	public int getDefaultWidth()
 	{
-		return TR.width(setting.getName()) + popupWidth + ARROW_SIZE + 6;
+		return WurstFont.get().width(setting.getName()) + popupWidth
+			+ ARROW_SIZE + 6;
 	}
 	
 	@Override
