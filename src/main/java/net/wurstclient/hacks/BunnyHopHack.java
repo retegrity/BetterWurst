@@ -12,12 +12,11 @@ import java.util.function.Predicate;
 import net.minecraft.client.player.LocalPlayer;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
-import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.settings.EnumSetting;
 
 @SearchTags({"AutoJump", "BHop", "bunny hop", "auto jump"})
-public final class BunnyHopHack extends Hack implements UpdateListener
+public final class BunnyHopHack extends Hack
 {
 	private final EnumSetting<JumpIf> jumpIf =
 		new EnumSetting<>("Jump if", JumpIf.values(), JumpIf.SPRINTING);
@@ -35,27 +34,17 @@ public final class BunnyHopHack extends Hack implements UpdateListener
 		return getName() + " [" + jumpIf.getSelected().name + "]";
 	}
 	
-	@Override
-	protected void onEnable()
+	/**
+	 * Whether BunnyHop holds the jump key in this tick, so the game jumps by
+	 * itself and the server sees the jump key, like with a real player.
+	 * Called from JumpUtils.
+	 */
+	public boolean shouldJump(LocalPlayer player)
 	{
-		EVENTS.add(UpdateListener.class, this);
-	}
-	
-	@Override
-	protected void onDisable()
-	{
-		EVENTS.remove(UpdateListener.class, this);
-	}
-	
-	@Override
-	public void onUpdate()
-	{
-		LocalPlayer player = MC.player;
-		if(!player.onGround() || player.isShiftKeyDown())
-			return;
+		if(!isEnabled() || !player.onGround() || player.isShiftKeyDown())
+			return false;
 		
-		if(jumpIf.getSelected().condition.test(player))
-			player.jumpFromGround();
+		return jumpIf.getSelected().condition.test(player);
 	}
 	
 	private enum JumpIf

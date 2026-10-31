@@ -88,6 +88,11 @@ public final class ExtraElytraHack extends Hack implements UpdateListener
 			doInstantFly();
 	}
 	
+	public boolean isInstantFlyActive()
+	{
+		return isEnabled() && instantFly.isChecked();
+	}
+	
 	private void sendStartStopPacket()
 	{
 		ServerboundPlayerCommandPacket packet =

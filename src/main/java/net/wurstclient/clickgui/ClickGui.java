@@ -38,6 +38,7 @@ import net.wurstclient.hacks.ClickGuiHack;
 import net.wurstclient.settings.Setting;
 import net.wurstclient.util.RenderUtils;
 import net.wurstclient.util.json.JsonUtils;
+import net.wurstclient.util.WurstFont;
 
 public final class ClickGui
 {
@@ -220,8 +221,44 @@ public final class ClickGui
 			leftMouseButtonPressed = false;
 	}
 	
+	/**
+	 * Lets the popup under the mouse (if any) handle a scroll event.
+	 *
+	 * @return true if the mouse was over a popup, so the scroll event
+	 *         shouldn't scroll anything else
+	 */
+	public boolean handlePopupMouseScroll(double mouseX, double mouseY,
+		double delta)
+	{
+		closeInvalidPopups();
+		
+		for(int i = popups.size() - 1; i >= 0; i--)
+		{
+			Popup popup = popups.get(i);
+			Component owner = popup.getOwner();
+			Window parent = owner.getParent();
+			
+			int x1 = parent.getX() + owner.getX() + popup.getX();
+			int y1 = parent.getY() + 13 + parent.getScrollOffset()
+				+ owner.getY() + popup.getY();
+			int x2 = x1 + popup.getWidth();
+			int y2 = y1 + popup.getHeight();
+			
+			if(mouseX < x1 || mouseY < y1 || mouseX >= x2 || mouseY >= y2)
+				continue;
+			
+			popup.handleMouseScroll(delta);
+			return true;
+		}
+		
+		return false;
+	}
+	
 	public void handleMouseScroll(double mouseX, double mouseY, double delta)
 	{
+		if(handlePopupMouseScroll(mouseX, mouseY, delta))
+			return;
+		
 		int dWheel = (int)delta * 4;
 		if(dWheel == 0)
 			return;
@@ -567,7 +604,7 @@ public final class ClickGui
 			return;
 		
 		String[] lines = tooltip.split("\n");
-		Font tr = MC.font;
+		Font tr = WurstFont.get();
 		
 		int tw = 0;
 		int th = lines.length * tr.lineHeight;
@@ -583,6 +620,9 @@ public final class ClickGui
 		int xt1 = mouseX + tw + 11 <= sw ? mouseX + 8 : mouseX - tw - 8;
 		int xt2 = xt1 + tw + 3;
 		int yt1 = mouseY + th - 2 <= sh ? mouseY - 4 : mouseY - th - 4;
+		
+		// keep long tooltips on the screen
+		yt1 = Math.max(0, Math.min(yt1, sh - th - 2));
 		int yt2 = yt1 + th + 2;
 		
 		context.guiRenderState.up();
@@ -800,7 +840,7 @@ public final class ClickGui
 		context.fill(x1, y1, x3, y3, titleBgColor);
 		
 		// window title
-		Font tr = MC.font;
+		Font tr = WurstFont.get();
 		String title = tr.substrByWidth(
 			net.minecraft.network.chat.Component.literal(window.getTitle()),
 			x3 - x1).getString();

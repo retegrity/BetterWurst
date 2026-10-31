@@ -18,7 +18,10 @@ import net.minecraft.resources.Identifier;
 import net.wurstclient.DontBlock;
 import net.wurstclient.SearchTags;
 import net.wurstclient.other_feature.OtherFeature;
+import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.settings.EnumSetting;
+import net.wurstclient.settings.SliderSetting;
+import net.wurstclient.settings.SliderSetting.ValueDisplay;
 
 @SearchTags({"wurst options", "settings"})
 @DontBlock
@@ -31,10 +34,56 @@ public final class WurstOptionsOtf extends OtherFeature
 		"description.wurst.setting.wurstoptions.location", Location.values(),
 		Location.GAME_MENU);
 	
+	private final SliderSetting lineWidth = new SliderSetting("Line width",
+		"How thick the lines drawn by ESP, tracers, Navigator and other"
+			+ " hacks are, in pixels.\n\n"
+			+ "Lower this if lines look too thick compared to older versions.",
+		2, 0.5, 4, 0.25, ValueDisplay.DECIMAL.withSuffix(" px"));
+	
+	private final CheckboxSetting mainMenu =
+		new CheckboxSetting("Wurst main menu",
+			"Brings back the custom Wurst main menu from Wurst v6.", true);
+	
+	private final CheckboxSetting windowStyle =
+		new CheckboxSetting("Wurst Minecraft window style",
+			"Changes the title of the game window to \"Wurst Client\" and the"
+				+ " Minecraft version, and its icon to the Wurst icon.",
+			true);
+	
+	private final CheckboxSetting loadingScreen =
+		new CheckboxSetting("Wurst loading screen",
+			"Replaces the Mojang loading screen with the one from Wurst 1.3."
+				+ " The TNT blocks on it come from your current resource pack.",
+			true);
+	
 	public WurstOptionsOtf()
 	{
 		super("WurstOptions", "description.wurst.other_feature.wurstoptions");
 		addSetting(location);
+		addSetting(lineWidth);
+		addSetting(mainMenu);
+		addSetting(windowStyle);
+		addSetting(loadingScreen);
+	}
+	
+	public boolean isMainMenuEnabled()
+	{
+		return mainMenu.isChecked();
+	}
+	
+	public boolean isWindowStyleEnabled()
+	{
+		return windowStyle.isChecked();
+	}
+	
+	public boolean isLoadingScreenEnabled()
+	{
+		return loadingScreen.isChecked();
+	}
+	
+	public float getLineWidth()
+	{
+		return lineWidth.getValueF();
 	}
 	
 	public boolean isVisibleInGameMenu()

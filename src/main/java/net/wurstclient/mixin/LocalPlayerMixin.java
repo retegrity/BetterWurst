@@ -23,6 +23,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.InputFaker;
 import net.wurstclient.InputFaker.TempRealInput;
@@ -36,6 +37,7 @@ import net.wurstclient.events.PreMotionListener.PreMotionEvent;
 import net.wurstclient.events.UpdateListener.UpdateEvent;
 import net.wurstclient.hack.HackList;
 import net.wurstclient.mixinterface.ILocalPlayer;
+import net.wurstclient.util.JumpUtils;
 
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerMixin extends AbstractClientPlayer
@@ -81,6 +83,31 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 		{
 			EventManager.fire(UpdateEvent.INSTANCE);
 		}
+	}
+	
+	/**
+	 * Changes the keys after the game reads them, so the server sees the
+	 * changed input too: jumps from JumpUtils, Legit Sneak, and BoatFly
+	 * hiding the sneak key while it uses it to fly down (so the server doesn't
+	 * make you get out of the vehicle).
+	 */
+	@Inject(method = "aiStep()V",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/client/player/ClientInput;tick()V",
+			shift = At.Shift.AFTER))
+	private void onInputTick(CallbackInfo ci)
+	{
+		LocalPlayer player = (LocalPlayer)(Object)this;
+		Input keys = player.input.keyPresses;
+		
+		boolean jump = JumpUtils.modifyJumpKey(player, keys.jump());
+		HackList hax = WurstClient.INSTANCE.getHax();
+		boolean shift = (keys.shift() || hax.sneakHack.shouldForceSneak())
+			&& !hax.boatFlyHack.shouldHideSneak();
+		
+		if(jump != keys.jump() || shift != keys.shift())
+			player.input.keyPresses = new Input(keys.forward(), keys.backward(),
+				keys.left(), keys.right(), jump, shift, keys.sprint());
 	}
 	
 	@Inject(method = "sendPosition()V", at = @At("HEAD"))
@@ -130,6 +157,13 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 		FlyingSpeedEvent event = new FlyingSpeedEvent(super.getFlyingSpeed());
 		EventManager.fire(event);
 		return event.getSpeed();
+	}
+	
+	@Override
+	public float getSpeed()
+	{
+		return super.getSpeed()
+			* WurstClient.INSTANCE.getHax().speedHackHack.getSpeedMultiplier();
 	}
 	
 	@Override
@@ -210,7 +244,7 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 		if(hax == null || !hax.reachHack.isEnabled())
 			return super.blockInteractionRange();
 		
-		return hax.reachHack.getReachDistance();
+		return hax.reachHack.getBlockReach();
 	}
 	
 	@Override
@@ -220,7 +254,7 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 		if(hax == null || !hax.reachHack.isEnabled())
 			return super.entityInteractionRange();
 		
-		return hax.reachHack.getReachDistance();
+		return hax.reachHack.getEntityReach();
 	}
 	
 	/**

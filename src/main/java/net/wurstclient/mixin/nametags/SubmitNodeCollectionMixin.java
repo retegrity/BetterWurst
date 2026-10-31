@@ -29,6 +29,7 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.WurstClient;
+import net.wurstclient.hacks.ItemEspHack;
 import net.wurstclient.hacks.NameTagsHack;
 
 @Mixin(SubmitNodeCollection.class)
@@ -48,13 +49,20 @@ public class SubmitNodeCollectionMixin
 		boolean seeThrough, int lightCoords, CameraRenderState camera)
 	{
 		NameTagsHack nameTagsHack = WurstClient.INSTANCE.getHax().nameTagsHack;
-		if(!nameTagsHack.isEnabled())
+		ItemEspHack itemEspHack = WurstClient.INSTANCE.getHax().itemEspHack;
+		
+		float userScale;
+		if(itemEspHack.isRenderingNameTag())
+			userScale = itemEspHack.getNameScale();
+		else if(nameTagsHack.isEnabled())
+			userScale = nameTagsHack.getScale();
+		else
 		{
 			original.call(matrices, x, y, z);
 			return;
 		}
 		
-		float scale = 0.025F * nameTagsHack.getScale();
+		float scale = 0.025F * userScale;
 		
 		if(RenderSystem.getProjectionType() == ProjectionType.PERSPECTIVE)
 		{
@@ -88,7 +96,8 @@ public class SubmitNodeCollectionMixin
 	private void swapNormalNameTagSubmit(SubmitNodeCollection collection,
 		TextFeatureRenderer.Submit submit, Operation<Void> original)
 	{
-		if(!WurstClient.INSTANCE.getHax().nameTagsHack.isSeeThrough())
+		// item names are handled in swapSeeThroughNameTagSubmit()
+		if(isRenderingItemName() || !isSeeThrough())
 		{
 			original.call(collection, submit);
 			return;
@@ -106,7 +115,22 @@ public class SubmitNodeCollectionMixin
 		TranslucentFeatureRenderPhase phase, TranslucentSubmit submit,
 		Operation<Void> original)
 	{
-		if(!WurstClient.INSTANCE.getHax().nameTagsHack.isSeeThrough())
+		// Vanilla draws this layer dimmed and with the background behind
+		// blocks, so for item names just make it fully bright.
+		if(isRenderingItemName()
+			&& submit instanceof TextFeatureRenderer.Submit nameTag && nameTag
+				.content() instanceof TextFeatureRenderer.Content.Text text)
+		{
+			original.call(phase,
+				new TextFeatureRenderer.Submit(nameTag.pose(),
+					nameTag.displayMode(), nameTag.lightCoords(),
+					new TextFeatureRenderer.Content.Text(text.x(), text.y(),
+						text.string(), text.dropShadow(), -1,
+						text.backgroundColor(), text.outlineColor())));
+			return;
+		}
+		
+		if(!isSeeThrough())
 		{
 			original.call(phase, submit);
 			return;
@@ -114,6 +138,16 @@ public class SubmitNodeCollectionMixin
 		
 		submitNameTagPart(copyWithDisplayMode(
 			(TextFeatureRenderer.Submit)submit, Font.DisplayMode.NORMAL));
+	}
+	
+	private boolean isSeeThrough()
+	{
+		return WurstClient.INSTANCE.getHax().nameTagsHack.isSeeThrough();
+	}
+	
+	private boolean isRenderingItemName()
+	{
+		return WurstClient.INSTANCE.getHax().itemEspHack.isRenderingNameTag();
 	}
 	
 	private TextFeatureRenderer.Submit copyWithDisplayMode(

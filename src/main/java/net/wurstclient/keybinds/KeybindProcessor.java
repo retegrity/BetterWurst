@@ -9,10 +9,8 @@ package net.wurstclient.keybinds;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.wurstclient.WurstClient;
-import net.wurstclient.clickgui.screens.ClickGuiScreen;
 import net.wurstclient.command.CmdProcessor;
 import net.wurstclient.events.KeyPressListener;
 import net.wurstclient.events.MouseButtonPressListener;
@@ -76,8 +74,8 @@ public final class KeybindProcessor
 		if(InputConstants.isKeyDown(InputConstants.KEY_F3))
 			return false;
 		
-		Screen screen = WurstClient.MC.gui.screen();
-		return screen == null || screen instanceof ClickGuiScreen;
+		return WurstClient.INSTANCE.getOtfs().keybindManagerOtf
+			.canUseKeybindsIn(WurstClient.MC.gui.screen());
 	}
 	
 	private String getKeyName(KeyPressEvent event)

@@ -7,9 +7,11 @@
  */
 package net.wurstclient.hacks;
 
+import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
+import net.minecraft.world.entity.player.Input;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
-import net.wurstclient.events.PostMotionListener;
+import net.wurstclient.events.PacketOutputListener;
 import net.wurstclient.events.PreMotionListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.mixinterface.IKeyMapping;
@@ -18,7 +20,7 @@ import net.wurstclient.settings.EnumSetting;
 
 @SearchTags({"AutoSneaking"})
 public final class SneakHack extends Hack
-	implements PreMotionListener, PostMotionListener
+	implements PreMotionListener, PacketOutputListener
 {
 	private final EnumSetting<SneakMode> mode = new EnumSetting<>("Mode",
 		"\u00a7lPacket\u00a7r mode makes it look like you're sneaking without slowing you down.\n"
@@ -32,6 +34,9 @@ public final class SneakHack extends Hack
 				+ "Keep in mind that this also means you won't be hidden from"
 				+ " other players while doing these things.",
 			false);
+	
+	// whether the input sent to the server says that sneak is pressed
+	private boolean packetSneaking;
 	
 	public SneakHack()
 	{
@@ -50,15 +55,16 @@ public final class SneakHack extends Hack
 	@Override
 	protected void onEnable()
 	{
+		packetSneaking = false;
 		EVENTS.add(PreMotionListener.class, this);
-		EVENTS.add(PostMotionListener.class, this);
+		EVENTS.add(PacketOutputListener.class, this);
 	}
 	
 	@Override
 	protected void onDisable()
 	{
 		EVENTS.remove(PreMotionListener.class, this);
-		EVENTS.remove(PostMotionListener.class, this);
+		EVENTS.remove(PacketOutputListener.class, this);
 		
 		switch(mode.getSelected())
 		{
@@ -67,8 +73,14 @@ public final class SneakHack extends Hack
 			break;
 			
 			case PACKET:
-			// sendSneakPacket(Mode.RELEASE_SHIFT_KEY);
 			break;
+		}
+		
+		// tell the server the real keys again
+		if(packetSneaking)
+		{
+			packetSneaking = false;
+			sendInput();
 		}
 	}
 	
@@ -88,20 +100,70 @@ public final class SneakHack extends Hack
 			
 			case PACKET:
 			sneakKey.resetDownState();
-			// sendSneakPacket(Mode.PRESS_SHIFT_KEY);
-			// sendSneakPacket(Mode.RELEASE_SHIFT_KEY);
 			break;
+		}
+		
+		// Sneaking in a vehicle makes the server dismount you, so don't
+		// tell it that you are sneaking there.
+		boolean shouldPacketSneak =
+			mode.getSelected() == SneakMode.PACKET && !MC.player.isPassenger();
+		if(shouldPacketSneak != packetSneaking)
+		{
+			packetSneaking = shouldPacketSneak;
+			sendInput();
 		}
 	}
 	
+	/**
+	 * Since 1.21.2, the server knows that you are sneaking from the sneak
+	 * key in the input packet. In Packet mode, that key is pressed in every
+	 * input packet, but not in your actual controls, so you sneak for
+	 * everyone else without slowing down.
+	 */
 	@Override
-	public void onPostMotion()
+	public void onSentPacket(PacketOutputEvent event)
 	{
-		// if(mode.getSelected() != SneakMode.PACKET)
-		// return;
-		//
-		// sendSneakPacket(Mode.RELEASE_SHIFT_KEY);
-		// sendSneakPacket(Mode.PRESS_SHIFT_KEY);
+		if(!packetSneaking || !(event
+			.getPacket() instanceof ServerboundPlayerInputPacket packet))
+			return;
+		
+		Input input = packet.input();
+		if(!input.shift())
+			event.setPacket(new ServerboundPlayerInputPacket(withShift(input)));
+	}
+	
+	/**
+	 * Sends the current keys right away. Vanilla only sends them when they
+	 * change.
+	 */
+	private void sendInput()
+	{
+		if(MC.player == null || MC.getConnection() == null)
+			return;
+		
+		MC.getConnection()
+			.send(new ServerboundPlayerInputPacket(MC.player.input.keyPresses));
+	}
+	
+	private static Input withShift(Input input)
+	{
+		return new Input(input.forward(), input.backward(), input.left(),
+			input.right(), input.jump(), true, input.sprint());
+	}
+	
+	/**
+	 * Whether Legit mode should sneak in this tick. Called from
+	 * LocalPlayerMixin right after the game reads the keys. Pressing the
+	 * sneak key alone isn't enough, since opening or closing a screen
+	 * releases all keys right before the game reads them, which made you
+	 * stop sneaking for a tick.
+	 */
+	public boolean shouldForceSneak()
+	{
+		if(!isEnabled() || mode.getSelected() != SneakMode.LEGIT)
+			return false;
+		
+		return !offWhileFlying.isChecked() || !isFlying();
 	}
 	
 	private boolean isFlying()
@@ -117,14 +179,6 @@ public final class SneakHack extends Hack
 		
 		return false;
 	}
-	
-	// private void sendSneakPacket(Mode mode)
-	// {
-	// ClientPlayerEntity player = MC.player;
-	// ClientCommandC2SPacket packet =
-	// new ClientCommandC2SPacket(player, mode);
-	// player.networkHandler.sendPacket(packet);
-	// }
 	
 	private enum SneakMode
 	{

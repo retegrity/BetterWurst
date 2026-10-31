@@ -28,6 +28,7 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.wurstclient.event.EventManager;
 import net.wurstclient.events.ConnectionPacketOutputListener.ConnectionPacketOutputEvent;
 import net.wurstclient.events.PacketInputListener.PacketInputEvent;
+import net.wurstclient.util.PacketBatcher;
 
 @Mixin(Connection.class)
 public abstract class ConnectionMixin
@@ -97,6 +98,7 @@ public abstract class ConnectionMixin
 		EventManager.fire(event);
 		
 		if(!event.isCancelled())
-			original.call(event.getPacket(), listener, flush);
+			original.call(event.getPacket(), listener,
+				flush && !PacketBatcher.isBatching());
 	}
 }

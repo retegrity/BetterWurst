@@ -41,7 +41,8 @@ public abstract class EntityRendererMixin<T extends Entity, S extends EntityRend
 		
 		HealthTagsHack healthTags =
 			WurstClient.INSTANCE.getHax().healthTagsHack;
-		if(!healthTags.isEnabled())
+		if(!healthTags.isEnabled()
+			|| WurstClient.INSTANCE.getHax().antiBotHack.isBot(entity))
 			return;
 		
 		state.nameTag = healthTags.addHealth(le, state.nameTag.copy());

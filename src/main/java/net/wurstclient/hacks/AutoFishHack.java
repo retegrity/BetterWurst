@@ -7,6 +7,8 @@
  */
 package net.wurstclient.hacks;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.player.LocalPlayer;
@@ -57,6 +59,16 @@ public final class AutoFishHack extends Hack
 		"How long AutoFish will wait after a bite before reeling in.", 0, 0, 60,
 		1, ValueDisplay.INTEGER.withSuffix(" ticks").withLabel(1, "1 tick"));
 	
+	private final SliderSetting catchDelayRandomization = new SliderSetting(
+		"Catch delay randomization",
+		"Randomly varies the catch delay by up to this many ticks in either"
+			+ " direction, which makes AutoFish harder to detect.\n\n"
+			+ "For example, a catch delay of 5 ticks with a randomization of"
+			+ " \u00b12 ticks reels in after 3 to 7 ticks. The delay never goes"
+			+ " below 0 ticks.",
+		0, 0, 5, 1, ValueDisplay.INTEGER.withPrefix("\u00b1")
+			.withSuffix(" ticks").withLabel(0, "off"));
+	
 	private final SliderSetting retryDelay = new SliderSetting("Retry delay",
 		"If casting or reeling in the fishing rod fails, this is how long"
 			+ " AutoFish will wait before trying again.",
@@ -87,6 +99,7 @@ public final class AutoFishHack extends Hack
 		addSetting(biteMode);
 		addSetting(validRange);
 		addSetting(catchDelay);
+		addSetting(catchDelayRandomization);
 		addSetting(retryDelay);
 		addSetting(patience);
 		debugDraw.getSettings().forEach(this::addSetting);
@@ -163,13 +176,13 @@ public final class AutoFishHack extends Hack
 		if(biteDetected)
 		{
 			shallowWaterWarning.checkWaterType();
-			reelInTimer = catchDelay.getValueI();
+			reelInTimer = getRandomizedCatchDelay();
 			fishingSpots.onBite(MC.player.fishing);
 			biteDetected = false;
 			
 			// also reel in if an entity was hooked
 		}else if(MC.player.fishing.getHookedIn() != null)
-			reelInTimer = catchDelay.getValueI();
+			reelInTimer = getRandomizedCatchDelay();
 		
 		// otherwise, reel in when the timer runs out
 		if(reelInTimer == 0)
@@ -270,5 +283,17 @@ public final class AutoFishHack extends Hack
 		{
 			return name;
 		}
+	}
+	
+	private int getRandomizedCatchDelay()
+	{
+		int delay = catchDelay.getValueI();
+		int randomization = catchDelayRandomization.getValueI();
+		if(randomization == 0)
+			return delay;
+		
+		int offset = ThreadLocalRandom.current().nextInt(-randomization,
+			randomization + 1);
+		return Math.max(0, delay + offset);
 	}
 }

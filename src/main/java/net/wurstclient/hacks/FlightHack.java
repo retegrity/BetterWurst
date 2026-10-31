@@ -128,7 +128,10 @@ public final class FlightHack extends Hack implements UpdateListener,
 		if(IKeyMapping.get(MC.options.keyShift).isActuallyDown())
 		{
 			MC.options.keyShift.setDown(false);
-			player.addDeltaMovement(new Vec3(0, -vSpeed, 0));
+			
+			// isActuallyDown() ignores open screens, so check for those here
+			if(MC.gui.screen() == null)
+				player.addDeltaMovement(new Vec3(0, -vSpeed, 0));
 		}
 		
 		if(antiKick.isChecked())

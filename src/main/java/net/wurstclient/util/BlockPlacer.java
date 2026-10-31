@@ -178,6 +178,26 @@ public enum BlockPlacer
 			linesOfSight[side.ordinal()], interactive[side.ordinal()]);
 	}
 	
+	/**
+	 * Returns the parameters for placing a block in mid-air at the given
+	 * position, without needing any neighboring block to place against. This
+	 * works by clicking the (replaceable) position itself, so the block is
+	 * placed right there. Only meant for positions that can be replaced.
+	 */
+	public static BlockPlacingParams getAirPlacingParams(BlockPos pos)
+	{
+		Vec3 eyesPos = RotationUtils.getEyesPos();
+		Vec3 hitVec = Vec3.atCenterOf(pos);
+		
+		// face the player so that directional blocks end up facing them
+		Direction side =
+			Direction.getApproximateNearest(eyesPos.subtract(hitVec));
+		
+		return new BlockPlacingParams(pos, side, hitVec,
+			eyesPos.distanceToSqr(hitVec),
+			BlockUtils.hasLineOfSight(eyesPos, hitVec), false);
+	}
+	
 	public static record BlockPlacingParams(BlockPos neighbor, Direction side,
 		Vec3 hitVec, double distanceSq, boolean lineOfSight,
 		boolean requiresSneaking)

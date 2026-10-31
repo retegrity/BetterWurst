@@ -17,6 +17,8 @@ import net.wurstclient.SearchTags;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.settings.ItemListSetting;
+import net.wurstclient.settings.SliderSetting;
+import net.wurstclient.settings.SliderSetting.ValueDisplay;
 
 @SearchTags({"auto drop", "AutoEject", "auto-eject", "auto eject",
 	"InventoryCleaner", "inventory cleaner", "InvCleaner", "inv cleaner"})
@@ -32,6 +34,13 @@ public final class AutoDropHack extends Hack implements UpdateListener
 		"minecraft:rose_bush", "minecraft:rotten_flesh", "minecraft:sunflower",
 		"minecraft:wheat_seeds", "minecraft:white_tulip");
 	
+	private final SliderSetting delay = new SliderSetting("Delay",
+		"Delay between dropping each item.\n"
+			+ "At 0ms, all unwanted items are dropped at once.",
+		0, 0, 1000, 25, ValueDisplay.INTEGER.withSuffix("ms"));
+	
+	private long nextDropTime;
+	
 	private final String renderName =
 		Math.random() < 0.01 ? "AutoLinus" : getName();
 	
@@ -40,6 +49,7 @@ public final class AutoDropHack extends Hack implements UpdateListener
 		super("AutoDrop");
 		setCategory(Category.ITEMS);
 		addSetting(items);
+		addSetting(delay);
 	}
 	
 	@Override
@@ -51,6 +61,7 @@ public final class AutoDropHack extends Hack implements UpdateListener
 	@Override
 	protected void onEnable()
 	{
+		nextDropTime = 0;
 		EVENTS.add(UpdateListener.class, this);
 	}
 	
@@ -66,6 +77,10 @@ public final class AutoDropHack extends Hack implements UpdateListener
 		// check screen
 		if(MC.gui.screen() instanceof AbstractContainerScreen
 			&& !(MC.gui.screen() instanceof InventoryScreen))
+			return;
+		
+		int delayMs = delay.getValueI();
+		if(delayMs > 0 && System.currentTimeMillis() < nextDropTime)
 			return;
 		
 		for(int slot = 9; slot < 45; slot++)
@@ -85,6 +100,12 @@ public final class AutoDropHack extends Hack implements UpdateListener
 				continue;
 			
 			IMC.getGameMode().windowClick_THROW(slot);
+			
+			if(delayMs > 0)
+			{
+				nextDropTime = System.currentTimeMillis() + delayMs;
+				return;
+			}
 		}
 	}
 }

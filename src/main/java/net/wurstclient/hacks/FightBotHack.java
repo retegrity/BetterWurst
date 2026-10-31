@@ -34,6 +34,7 @@ import net.wurstclient.settings.PauseAttackOnContainersSetting;
 import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.settings.SliderSetting.ValueDisplay;
 import net.wurstclient.settings.filterlists.EntityFilterList;
+import net.wurstclient.util.AttackUtils;
 import net.wurstclient.util.EntityUtils;
 
 @SearchTags({"fight bot"})
@@ -210,9 +211,14 @@ public final class FightBotHack extends Hack
 		if(EntityUtils.distanceToHitboxSq(entity) > range.getValueSq())
 			return;
 		
+		if(WURST.getHax().criticalsHack.shouldDelayAttack())
+			return;
+		
+		if(AttackUtils.shouldDelayAttack())
+			return;
+		
 		// attack entity
-		MC.gameMode.attack(MC.player, entity);
-		attackSwing.swing();
+		AttackUtils.attackAndSwing(entity, attackSwing::swing);
 		speed.resetTimer();
 	}
 	

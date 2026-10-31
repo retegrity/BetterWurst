@@ -13,7 +13,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.resources.language.I18n;
-import net.wurstclient.gametest.WurstClientTestHelper;
 import net.wurstclient.gametest.WurstTest;
 
 public enum AltManagerTest
@@ -41,8 +40,8 @@ public enum AltManagerTest
 		checkButtonPosition(altManagerButton, realmsButton.getRight() + 4,
 			multiplayerButton.getBottom() + 4);
 		
-		WurstClientTestHelper.assertScreenshotEquals(context,
-			"alt_manager_button", "https://i.imgur.com/jyWiuCe.png");
+		// The title screenshot is not compared, since this fork replaces the
+		// Minecraft logo with the Wurst 6 style main menu.
 	}
 	
 	private static Button findButton(Minecraft mc, String translationKey)

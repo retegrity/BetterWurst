@@ -26,21 +26,35 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
+import net.wurstclient.events.FlyingSpeedListener;
 import net.wurstclient.events.RenderListener;
 import net.wurstclient.events.UpdateListener;
+import net.wurstclient.events.VisGraphListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.hacks.noclip.NoClipRenderer;
 import net.wurstclient.hacks.noclip.NoClipRenderer.JumpToRender;
 import net.wurstclient.mixinterface.IKeyMapping;
 import net.wurstclient.settings.CheckboxSetting;
+import net.wurstclient.settings.EnumSetting;
 
 @SearchTags({"no clip"})
-public final class NoClipHack extends Hack
-	implements UpdateListener, RenderListener
+public final class NoClipHack extends Hack implements UpdateListener,
+	RenderListener, VisGraphListener, FlyingSpeedListener
 {
 	// Limited by ServerGamePacketListenerImpl.handleMovePlayer()
 	public static final double MAX_DISTANCE_WITHOUT_ELYTRA = Math.sqrt(500);
 	public static final double MAX_DISTANCE = Math.sqrt(1500);
+	
+	private final EnumSetting<Mode> mode = new EnumSetting<>("Mode",
+		"\u00a7lNormal\u00a7r teleports you through blocks, as described"
+			+ " above.\n\n"
+			+ "\u00a7lOld\u00a7r is NoClip from older Wurst versions: it turns"
+			+ " off your collision with blocks and lets you fly around slowly"
+			+ " (jump and sneak to go up and down). Vanilla servers don't let"
+			+ " you move into blocks and pull you back, so it only works on"
+			+ " servers that don't check that, which makes it useful for"
+			+ " testing whether a server does.",
+		Mode.values(), Mode.NORMAL);
 	
 	private final CheckboxSetting showPassableBlocks =
 		new CheckboxSetting("Show passable blocks",
@@ -57,7 +71,14 @@ public final class NoClipHack extends Hack
 	{
 		super("NoClip");
 		setCategory(Category.MOVEMENT);
+		addSetting(mode);
 		addSetting(showPassableBlocks);
+	}
+	
+	@Override
+	public String getRenderName()
+	{
+		return getName() + " [" + mode.getSelected() + "]";
 	}
 	
 	@Override
@@ -65,6 +86,8 @@ public final class NoClipHack extends Hack
 	{
 		EVENTS.add(UpdateListener.class, this);
 		EVENTS.add(RenderListener.class, this);
+		EVENTS.add(VisGraphListener.class, this);
+		EVENTS.add(FlyingSpeedListener.class, this);
 	}
 	
 	@Override
@@ -72,6 +95,9 @@ public final class NoClipHack extends Hack
 	{
 		EVENTS.remove(UpdateListener.class, this);
 		EVENTS.remove(RenderListener.class, this);
+		EVENTS.remove(VisGraphListener.class, this);
+		EVENTS.remove(FlyingSpeedListener.class, this);
+		MC.player.noPhysics = false;
 		jumpsToRender.clear();
 		direction = Vec3.ZERO;
 		preJumpTicks = 0;
@@ -83,6 +109,12 @@ public final class NoClipHack extends Hack
 	public void onUpdate()
 	{
 		jumpsToRender.clear();
+		if(mode.getSelected() == Mode.OLD)
+		{
+			updateOld();
+			return;
+		}
+		
 		if(showPassableBlocks.isChecked()
 			&& MC.player.pick(64, 0, false) instanceof BlockHitResult hit)
 			jumpsToRender
@@ -101,16 +133,67 @@ public final class NoClipHack extends Hack
 			needsButtonRelease = false;
 	}
 	
+	/**
+	 * NoClip as it was in older Wurst versions: no collision and slow
+	 * flight.
+	 */
+	private void updateOld()
+	{
+		LocalPlayer player = MC.player;
+		
+		player.noPhysics = true;
+		player.fallDistance = 0;
+		player.setOnGround(false);
+		
+		player.getAbilities().flying = false;
+		player.setDeltaMovement(0, 0, 0);
+		
+		float speed = 0.2F;
+		if(MC.options.keyJump.isDown())
+			player.push(0, speed, 0);
+		if(MC.options.keyShift.isDown())
+			player.push(0, -speed, 0);
+	}
+	
+	@Override
+	public void onGetFlyingSpeed(FlyingSpeedEvent event)
+	{
+		if(isOldMode())
+			event.setSpeed(0.2F);
+	}
+	
+	/**
+	 * Called at the start of LocalPlayer.move(). The player's tick resets
+	 * noPhysics right before that, so Old mode sets it again here.
+	 */
+	public void onPlayerMove()
+	{
+		if(isOldMode())
+			MC.player.noPhysics = true;
+	}
+	
+	@Override
+	public void onVisGraph(VisGraphEvent event)
+	{
+		if(isOldMode())
+			event.cancel();
+	}
+	
+	public boolean isOldMode()
+	{
+		return isEnabled() && mode.getSelected() == Mode.OLD;
+	}
+	
 	@Override
 	public void onRender(PoseStack matrixStack, float partialTicks)
 	{
-		if(showPassableBlocks.isChecked())
+		if(mode.getSelected() == Mode.NORMAL && showPassableBlocks.isChecked())
 			NoClipRenderer.renderJumps(matrixStack, jumpsToRender);
 	}
 	
 	public boolean shouldSendPosition()
 	{
-		if(!isEnabled())
+		if(!isEnabled() || mode.getSelected() == Mode.OLD)
 			return true;
 		
 		if(postJumpTicks > 0)
@@ -189,5 +272,24 @@ public final class NoClipHack extends Hack
 		}
 		
 		return null;
+	}
+	
+	private enum Mode
+	{
+		NORMAL("Normal"),
+		OLD("Old");
+		
+		private final String name;
+		
+		private Mode(String name)
+		{
+			this.name = name;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return name;
+		}
 	}
 }

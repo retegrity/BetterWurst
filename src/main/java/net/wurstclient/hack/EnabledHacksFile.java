@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import com.google.gson.JsonArray;
@@ -61,23 +64,61 @@ public final class EnabledHacksFile
 		save(hax);
 	}
 	
+	/**
+	 * Enables the given hacks if they are in the enabled hacks file, without
+	 * waiting for the first world to be joined and without touching any other
+	 * hacks. Used for hacks that should also work in the main menu.
+	 */
+	public void enableEarly(HackList hax, Hack... earlyHax)
+	{
+		try
+		{
+			WsonArray wson = JsonUtils.parseFileToArray(path);
+			List<String> names = wson.getAllStrings();
+			
+			disableSaving = true;
+			for(Hack hack : earlyHax)
+				if(hack.isStateSaved() && names.contains(hack.getName()))
+					hack.setEnabled(true);
+				
+		}catch(NoSuchFileException e)
+		{
+			// The file doesn't exist yet. No problem.
+			
+		}catch(IOException | JsonException e)
+		{
+			System.out.println("Couldn't load " + path.getFileName());
+			e.printStackTrace();
+			
+		}finally
+		{
+			disableSaving = false;
+		}
+	}
+	
 	private void enableHacks(HackList hax, WsonArray wson)
 	{
 		try
 		{
 			disableSaving = true;
 			
-			for(Hack hack : hax.getAllHax())
-				hack.setEnabled(false);
-			
+			Set<Hack> toEnable = new LinkedHashSet<>();
 			for(String name : wson.getAllStrings())
 			{
 				Hack hack = hax.getHackByName(name);
 				if(hack == null || !hack.isStateSaved())
 					continue;
 				
-				hack.setEnabled(true);
+				toEnable.add(hack);
 			}
+			
+			// hacks that are already in the right state are left alone
+			for(Hack hack : hax.getAllHax())
+				if(!toEnable.contains(hack))
+					hack.setEnabled(false);
+				
+			for(Hack hack : toEnable)
+				hack.setEnabled(true);
 			
 		}finally
 		{

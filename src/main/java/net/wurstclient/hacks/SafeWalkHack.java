@@ -58,7 +58,9 @@ public final class SafeWalkHack extends Hack
 	{
 		LocalPlayer player = MC.player;
 		
-		if(!isEnabled() || !sneak.isChecked() || !player.onGround())
+		// don't sneak while you are typing in chat, in your inventory, etc.
+		if(!isEnabled() || !sneak.isChecked() || !player.onGround()
+			|| !WURST.getHax().invWalkHack.canPressKey(MC.options.keyShift))
 		{
 			if(sneaking)
 				setSneaking(false);

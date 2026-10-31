@@ -24,17 +24,12 @@ import net.wurstclient.SearchTags;
 import net.wurstclient.events.PacketOutputListener;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
-import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.util.BlockUtils;
 
 @SearchTags({"WaterWalking", "water walking"})
 public final class JesusHack extends Hack
 	implements UpdateListener, PacketOutputListener
 {
-	private final CheckboxSetting bypass =
-		new CheckboxSetting("NoCheat+ bypass",
-			"Bypasses NoCheat+ but slows down your movement.", false);
-	
 	private int tickTimer = 10;
 	private int packetTimer = 0;
 	
@@ -42,7 +37,6 @@ public final class JesusHack extends Hack
 	{
 		super("Jesus");
 		setCategory(Category.MOVEMENT);
-		addSetting(bypass);
 	}
 	
 	@Override
@@ -135,10 +129,7 @@ public final class JesusHack extends Hack
 		double z = packet.getZ(0);
 		
 		// offset y
-		if(bypass.isChecked() && MC.player.tickCount % 2 == 0)
-			y -= 0.05;
-		else
-			y += 0.05;
+		y += 0.05;
 		
 		// create new packet
 		Packet<?> newPacket;

@@ -96,6 +96,32 @@ public final class InvWalkHack extends Hack implements UpdateListener
 			IKeyMapping.get(key).resetDownState();
 	}
 	
+	/**
+	 * Returns true if hacks may press the given key right now, i.e. no screen
+	 * is open, or InvWalk lets you use that key in the open screen.
+	 */
+	public boolean canPressKey(KeyMapping key)
+	{
+		Screen screen = MC.gui.screen();
+		if(screen == null)
+			return true;
+		
+		if(!isEnabled() || !isAllowedScreen(screen))
+			return false;
+		
+		if(key == MC.options.keyShift)
+			return allowSneak.isChecked();
+		
+		if(key == MC.options.keySprint)
+			return allowSprint.isChecked();
+		
+		if(key == MC.options.keyJump)
+			return allowJump.isChecked();
+		
+		return key == MC.options.keyUp || key == MC.options.keyDown
+			|| key == MC.options.keyLeft || key == MC.options.keyRight;
+	}
+	
 	private boolean isAllowedScreen(Screen screen)
 	{
 		if((screen instanceof InventoryScreen

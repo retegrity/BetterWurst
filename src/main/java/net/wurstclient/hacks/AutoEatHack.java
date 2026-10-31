@@ -15,6 +15,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -37,6 +38,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
+import net.wurstclient.events.HandleInputListener;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.settings.CheckboxSetting;
@@ -48,7 +50,8 @@ import net.wurstclient.util.InventoryUtils;
 
 @SearchTags({"auto eat", "AutoFood", "auto food", "AutoFeeder", "auto feeder",
 	"AutoFeeding", "auto feeding", "AutoSoup", "auto soup"})
-public final class AutoEatHack extends Hack implements UpdateListener
+public final class AutoEatHack extends Hack
+	implements UpdateListener, HandleInputListener
 {
 	private final SliderSetting targetHunger = new SliderSetting(
 		"Target hunger", "description.wurst.setting.autoeat.target_hunger", 10,
@@ -90,6 +93,7 @@ public final class AutoEatHack extends Hack implements UpdateListener
 			"description.wurst.setting.autoeat.allow_chorus", false);
 	
 	private int oldSlot = -1;
+	private boolean eatingOffhand;
 	
 	public AutoEatHack()
 	{
@@ -115,12 +119,14 @@ public final class AutoEatHack extends Hack implements UpdateListener
 	{
 		WURST.getHax().autoSoupHack.setEnabled(false);
 		EVENTS.add(UpdateListener.class, this);
+		EVENTS.add(HandleInputListener.class, this);
 	}
 	
 	@Override
 	protected void onDisable()
 	{
 		EVENTS.remove(UpdateListener.class, this);
+		EVENTS.remove(HandleInputListener.class, this);
 		
 		if(isEating())
 			stopEating();
@@ -190,7 +196,8 @@ public final class AutoEatHack extends Hack implements UpdateListener
 			if(!isEating())
 				oldSlot = inventory.getSelectedSlot();
 			
-			// off-hand slot, no need to select anything
+			eatOffhand();
+			return;
 			
 		}else
 		{
@@ -201,6 +208,38 @@ public final class AutoEatHack extends Hack implements UpdateListener
 		// eat food
 		MC.options.keyUse.setDown(true);
 		IMC.getGameMode().rightClickItem();
+	}
+	
+	/**
+	 * Starts eating with the off-hand directly. Holding the use key to start
+	 * would make the game try the main hand first, which places the block
+	 * you are holding there.
+	 */
+	private void eatOffhand()
+	{
+		LocalPlayer player = MC.player;
+		if(!player.isUsingItem())
+			MC.gameMode.useItem(player, InteractionHand.OFF_HAND);
+		
+		// the game stops eating when the use key isn't held
+		eatingOffhand = player.isUsingItem();
+		MC.options.keyUse.setDown(eatingOffhand);
+	}
+	
+	/**
+	 * Lets go of the use key once the off-hand food is eaten. The client only
+	 * finishes eating when the server says so, and that packet is handled
+	 * right before the game reads the keys. So this has to happen here, or
+	 * the game would use the main hand with the key that is still held.
+	 */
+	@Override
+	public void onHandleInput()
+	{
+		if(!eatingOffhand || MC.player.isUsingItem())
+			return;
+		
+		MC.options.keyUse.setDown(false);
+		eatingOffhand = false;
 	}
 	
 	private int findBestFoodSlot(int maxPoints)
@@ -229,8 +268,14 @@ public final class AutoEatHack extends Hack implements UpdateListener
 			// filter out non-food items
 			if(!stack.has(DataComponents.FOOD))
 				continue;
+				
+			// Some items (like fish buckets) have food properties but can't
+			// actually be eaten, because they have no consumable component.
+			Consumable consumable = stack.get(DataComponents.CONSUMABLE);
+			if(consumable == null)
+				continue;
 			
-			if(!isAllowedFood(stack.get(DataComponents.CONSUMABLE)))
+			if(!isAllowedFood(consumable))
 				continue;
 			
 			FoodProperties food = stack.get(DataComponents.FOOD);
@@ -269,6 +314,7 @@ public final class AutoEatHack extends Hack implements UpdateListener
 	private void stopEating()
 	{
 		MC.options.keyUse.setDown(false);
+		eatingOffhand = false;
 		MC.player.getInventory().setSelectedSlot(oldSlot);
 		oldSlot = -1;
 	}

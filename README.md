@@ -1,109 +1,25 @@
-# Wurst Client v7
+<img width="1050" height="285" alt="image" src="https://github.com/user-attachments/assets/6ff8ef52-7b01-4029-b5b7-86efa3f292e7" />
+<img width="1500" height="380" alt="wurst_src" src="https://github.com/user-attachments/assets/1bd9cc3d-4afd-4e2b-908e-0b58c6cc5dff" />
 
-![Wurst Client logo](https://img.wimods.net/github.com/Wurst-Imperium/Wurst7?to=https://wurst.wiki/_media/logo/wurst_758x192.webp)
+# BetterWurst Client v7 (by retegrity and Opus 5.5)
 
-- **Downloads:** [https://www.wurstclient.net/download/](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fwww.wurstclient.net%2Fdownload%2F%3Futm_source%3DGitHub%26utm_medium%3DWurst7%2Brepo)
+this is a fork of wurst that i made using claude opus 5.5 which adds a ton of features that i and some other people suggested, it also fixes some bugs i found, and a bug found by another person([/d/1709](https://wurstforum.net/d/1709-autoeat-crashes-when-holding-a-bucket-of-fish))
 
-- **Installation guide:** [https://www.wurstclient.net/tutorials/how-to-install/](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fwww.wurstclient.net%2Ftutorials%2Fhow-to-install%2F%3Futm_source%3DGitHub%26utm_medium%3DWurst7%2Brepo)
+the following hacks have been inspired by or taken from other clients/mods:
 
-- **Feature list:** [https://www.wurstclient.net/](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fwww.wurstclient.net%2F%3Futm_source%3DGitHub%26utm_medium%3DWurst7%2Brepo)
-
-- **Wiki:** [https://wurst.wiki/](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fwurst.wiki%2F%3Futm_source%3DGitHub%26utm_medium%3DWurst7%2Brepo)
-
-- **Forum:** [https://wurstforum.net/](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fwurstforum.net%2F%3Futm_source%3DGitHub%26utm_medium%3DWurst7%2Brepo)	
-
-- **Twitter/X:** [https://x.com/Wurst_Imperium](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https://x.com/Wurst_Imperium)
-
-- **YouTube:** [https://www.youtube.com/@Alexander01998](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https://www.youtube.com/@Alexander01998)
-
-- **Donations/Perks:** [https://ko-fi.com/wurst](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https://ko-fi.com/wurst)
-
+- nojumpdelay from NoJumpDelay Enhanced
+- improved .vclip mechanic from Autism Client
+- speedhack's "strafe" and linear killaura rotations from LiquidBounce
+- fastlunge from Clarity Client
+- antiexploit from LiquidBounce
+- clutch from Vape Client
+- antihunger's nosprint from Autism Client
+- criticals rewrite from LiquidBounce
+- nofall rewrite from LiquidBounce
+- multiactions from LiquidBounce
 ## Installation
 
-Wurst 7 can be installed just like any other Fabric mod. Here are the basic installation steps:
-
-1. Run the Fabric installer.
-2. Add the Wurst Client and Fabric API to your mods folder.
-
-Please refer to the [full Wurst 7 installation guide](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fwww.wurstclient.net%2Ftutorials%2Fhow-to-install%2F%3Futm_source%3DGitHub%26utm_medium%3DWurst7%2Brepo) if you need more detailed instructions or run into any problems.
-
-Also, this should be obvious, but you do need to have a licensed copy of Minecraft Java Edition in order to use Wurst. Wurst is a cheat client, not a pirate client.
-
-## Development Setup
-
-> [!IMPORTANT]
-> Make sure you have [Java Development Kit 25](https://adoptium.net/temurin/releases?version=25&os=any&arch=any) installed. It won't work with other versions.
-
-### Development using Eclipse
-
-1. Clone the repository:
-
-   ```pwsh
-   git clone https://github.com/Wurst-Imperium/Wurst7.git
-   cd Wurst7
-   ```
-
-2. Generate the sources:
-
-   ```pwsh
-   ./gradlew genSources genEclipseRuns
-   ```
-
-3. In Eclipse, go to `Import...` > `Gradle` > `Existing Gradle Project` and select this project.
-
-4. **Optional:** Right-click on the project and select `Properties` > `Java Code Style`. Then under `Clean Up`, `Code Templates`, `Formatter`, import the respective files in the `codestyle` folder.
-
-### Development using VSCode / Cursor
-
-> [!TIP]
-> You'll probably want to install the [Extension Pack for Java](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3Dvscjava.vscode-java-pack) to make development easier.
-
-1. Clone the repository:
-
-   ```pwsh
-   git clone https://github.com/Wurst-Imperium/Wurst7.git
-   cd Wurst7
-   ```
-
-2. Generate the sources:
-
-   ```pwsh
-   ./gradlew genSources vscode
-   ```
-
-3. Open the `Wurst7` folder in VSCode / Cursor.
-
-4. **Optional:** In the VSCode settings, set `java.format.settings.url` to `https://raw.githubusercontent.com/Wurst-Imperium/Wurst7/master/codestyle/formatter.xml` and `java.format.settings.profile` to `Wurst-Imperium`.
-
-### Development using IntelliJ IDEA
-
-I don't use or recommend IntelliJ, but the commands to run would be:
-
-```pwsh
-git clone https://github.com/Wurst-Imperium/Wurst7.git
-cd Wurst7
-./gradlew genSources ideaSyncTask --no-configuration-cache
-```
-
-**Note:** IntelliJ IDEA is [not yet compatible](https://github.com/FabricMC/fabric-loom/issues/1349) with Gradle's configuration cache. You will run into issues.
-
-Possible workarounds:
-- Turn off args files ([this setting](https://i.imgur.com/zHqIOYg.png)). Won't work for some users because of a command length limit.
-- Add `--no-configuration-cache` to all of your Gradle commands.
-
-## Contributing
-
-Please always [contact me](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https%3A%2F%2Fwww.wurstclient.net%2Fcontact%2F%3Futm_source%3DGitHub%26utm_medium%3DWurst7%2Brepo) before opening a Pull Request. Any method works. That way we can discuss your ideas early and avoid wasting your time working on unwanted features or having to make lots of changes later.
-
-We also have [contributing guidelines](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https://github.com/Wurst-Imperium/Wurst7/blob/master/CONTRIBUTING.md) to help you get started.
-
-## Translations
-
-To enable translations in-game, go to Wurst Options > Translations > ON.
-
-The preferred way to submit translations is through a Pull Request here on GitHub. The translation files are located in [this folder](https://go.wimods.net/from/github.com/Wurst-Imperium/Wurst7?to=https://github.com/Wurst-Imperium/Wurst7/tree/master/src/main/resources/assets/wurst/translations).
-
-Names of features (hacks/commands/etc.) should always be kept in English. This ensures that everyone can use the same commands, keybinds, etc. regardless of their language setting. It also makes it easier to communicate with someone who uses Wurst in a different language.
+my fork can be downloaded by cloning the repository and building the mod jar from source, or from the releases tab
 
 ## License
 

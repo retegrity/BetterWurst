@@ -12,19 +12,31 @@ import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
+import net.wurstclient.settings.SliderSetting;
+import net.wurstclient.settings.SliderSetting.ValueDisplay;
 
 @SearchTags({"auto switch"})
 public final class AutoSwitchHack extends Hack implements UpdateListener
 {
+	private final SliderSetting speed = new SliderSetting("Speed",
+		"How many times per second to switch to the next slot.", 20, 1, 20, 1,
+		ValueDisplay.INTEGER.withSuffix("/s"));
+	
+	// how many switches are due, so speeds that don't fit evenly into 20
+	// ticks are still spread out evenly
+	private double progress;
+	
 	public AutoSwitchHack()
 	{
 		super("AutoSwitch");
 		setCategory(Category.ITEMS);
+		addSetting(speed);
 	}
 	
 	@Override
 	protected void onEnable()
 	{
+		progress = 0;
 		EVENTS.add(UpdateListener.class, this);
 	}
 	
@@ -37,6 +49,11 @@ public final class AutoSwitchHack extends Hack implements UpdateListener
 	@Override
 	public void onUpdate()
 	{
+		progress += speed.getValue() / 20;
+		if(progress < 1)
+			return;
+		progress--;
+		
 		Inventory inventory = MC.player.getInventory();
 		int prevSlot = inventory.getSelectedSlot();
 		

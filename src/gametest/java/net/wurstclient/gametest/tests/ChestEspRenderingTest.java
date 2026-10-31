@@ -53,6 +53,9 @@ public final class ChestEspRenderingTest extends SingleplayerTest
 		context.runOnClient(_ -> chestEsp.getSettings().values().stream()
 			.filter(CheckboxSetting.class::isInstance)
 			.map(CheckboxSetting.class::cast)
+			// would hide the single chests that the screenshots show
+			.filter(checkbox -> !checkbox.getName()
+				.equals("Only highlight double chests"))
 			.forEach(checkbox -> checkbox.setChecked(true)));
 		assertScreenshotEquals("chestesp_boxes",
 			"https://i.imgur.com/h0W56OS.png");

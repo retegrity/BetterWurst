@@ -7,16 +7,21 @@
  */
 package net.wurstclient.hacks;
 
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
-import net.wurstclient.mixinterface.IMultiPlayerGameMode;
+import net.wurstclient.mixinterface.IKeyMapping;
 import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.settings.SliderSetting.ValueDisplay;
@@ -38,7 +43,20 @@ public final class AutoTotemHack extends Hack implements UpdateListener
 		0, 0, 10, 0.5, ValueDisplay.DECIMAL.withSuffix(" hearts")
 			.withLabel(1, "1 heart").withLabel(0, "ignore"));
 	
-	private int nextTickSlot;
+	private final CheckboxSetting openInventory = new CheckboxSetting(
+		"Open inventory",
+		"When the only totems are in your main inventory (not the hotbar),"
+			+ " visually opens your inventory while moving one to your"
+			+ " offhand, like a real player would.\n\n"
+			+ "Totems in your hotbar are swapped into your offhand with the"
+			+ " swap key instead, which doesn't need the inventory.",
+		false);
+	
+	private Stage stage = Stage.IDLE;
+	private int swapSlot;
+	private int originalSlot;
+	private int retries;
+	private boolean openedInventory;
 	private int totems;
 	private int timer;
 	private boolean wasTotemInOffhand;
@@ -50,6 +68,7 @@ public final class AutoTotemHack extends Hack implements UpdateListener
 		addSetting(showCounter);
 		addSetting(delay);
 		addSetting(health);
+		addSetting(openInventory);
 	}
 	
 	@Override
@@ -67,7 +86,7 @@ public final class AutoTotemHack extends Hack implements UpdateListener
 	@Override
 	protected void onEnable()
 	{
-		nextTickSlot = -1;
+		stage = Stage.IDLE;
 		totems = 0;
 		timer = 0;
 		wasTotemInOffhand = false;
@@ -78,14 +97,36 @@ public final class AutoTotemHack extends Hack implements UpdateListener
 	protected void onDisable()
 	{
 		EVENTS.remove(UpdateListener.class, this);
+		
+		if(stage == Stage.INVENTORY_PREPARE)
+			closeInventory();
+		
+		if(stage == Stage.INVENTORY_PREPARE || stage == Stage.INVENTORY_RESUME)
+			resetMovementKeys();
+		
+		stage = Stage.IDLE;
+	}
+	
+	/**
+	 * Returns true while AutoTotem is moving a totem. Combat hacks wait
+	 * during that time, since a real player couldn't attack or place blocks
+	 * while doing this.
+	 */
+	public boolean isBusy()
+	{
+		return isEnabled() && stage != Stage.IDLE;
 	}
 	
 	@Override
 	public void onUpdate()
 	{
-		finishMovingTotem();
+		if(stage != Stage.IDLE)
+		{
+			continueSwap();
+			return;
+		}
 		
-		int nextTotemSlot = searchForTotems();
+		countTotems();
 		
 		if(isTotem(MC.player.getOffhandItem()))
 		{
@@ -99,7 +140,7 @@ public final class AutoTotemHack extends Hack implements UpdateListener
 			wasTotemInOffhand = false;
 		}
 		
-		if(nextTotemSlot == -1)
+		if(totems <= 0)
 			return;
 		
 		float healthF = health.getValueF();
@@ -118,43 +159,161 @@ public final class AutoTotemHack extends Hack implements UpdateListener
 			return;
 		}
 		
-		moveToOffhand(nextTotemSlot);
+		startSwap();
 	}
 	
-	private void moveToOffhand(int itemSlot)
+	private void startSwap()
 	{
-		boolean offhandEmpty = MC.player.getOffhandItem().isEmpty();
+		// totem in the hotbar: select it and press the swap key, which works
+		// while moving and doesn't need the inventory
+		int hotbarSlot = InventoryUtils.indexOf(this::isTotem, 9);
+		if(hotbarSlot != -1)
+		{
+			swapSlot = hotbarSlot;
+			originalSlot = MC.player.getInventory().getSelectedSlot();
+			
+			// vanilla sends the new slot to the server at the start of the
+			// next tick
+			MC.player.getInventory().setSelectedSlot(hotbarSlot);
+			retries = 0;
+			stage = Stage.HOTBAR_SWAP;
+			return;
+		}
 		
-		IMultiPlayerGameMode gm = IMC.getGameMode();
-		gm.windowClick_PICKUP(itemSlot);
-		gm.windowClick_PICKUP(45);
-		
-		if(!offhandEmpty)
-			nextTickSlot = itemSlot;
-	}
-	
-	private void finishMovingTotem()
-	{
-		if(nextTickSlot == -1)
+		int invSlot = InventoryUtils.indexOf(this::isTotem, 36);
+		if(invSlot == -1)
 			return;
 		
-		IMultiPlayerGameMode gm = IMC.getGameMode();
-		gm.windowClick_PICKUP(nextTickSlot);
-		nextTickSlot = -1;
+		swapSlot = InventoryUtils.toNetworkSlot(invSlot);
+		
+		// already in the inventory: just do the click
+		if(MC.gui.screen() instanceof InventoryScreen)
+		{
+			IMC.getGameMode().windowClick_SWAP(swapSlot, 40);
+			return;
+		}
+		
+		// stop moving for a tick first, like a real player opening the
+		// inventory
+		openedInventory = false;
+		if(openInventory.isChecked() && MC.gui.screen() == null)
+		{
+			MC.gui.setScreen(new InventoryScreen(MC.player));
+			openedInventory = true;
+		}
+		
+		releaseMovementKeys();
+		stage = Stage.INVENTORY_PREPARE;
 	}
 	
-	private int searchForTotems()
+	private void continueSwap()
+	{
+		switch(stage)
+		{
+			case HOTBAR_SWAP:
+			// another hack (e.g. AutoSword) switched away from the totem,
+			// so select it again and wait for vanilla to send the slot
+			if(MC.player.getInventory().getSelectedSlot() != swapSlot
+				|| !isTotem(MC.player.getInventory().getItem(swapSlot)))
+			{
+				if(++retries > 3
+					|| !isTotem(MC.player.getInventory().getItem(swapSlot)))
+				{
+					MC.player.getInventory().setSelectedSlot(originalSlot);
+					finishSwap();
+					break;
+				}
+				
+				MC.player.getInventory().setSelectedSlot(swapSlot);
+				break;
+			}
+			
+			// same packet as pressing the swap key
+			MC.player.connection.send(new ServerboundPlayerActionPacket(
+				ServerboundPlayerActionPacket.Action.SWAP_ITEM_WITH_OFFHAND,
+				BlockPos.ZERO, Direction.DOWN));
+			stage = Stage.HOTBAR_SWITCH_BACK;
+			break;
+			
+			case HOTBAR_SWITCH_BACK:
+			if(MC.player.getInventory().getSelectedSlot() == swapSlot)
+				MC.player.getInventory().setSelectedSlot(originalSlot);
+			finishSwap();
+			break;
+			
+			case INVENTORY_PREPARE:
+			// keys can get pressed again in the meantime
+			releaseMovementKeys();
+			IMC.getGameMode().windowClick_SWAP(swapSlot, 40);
+			closeInventory();
+			stage = Stage.INVENTORY_RESUME;
+			break;
+			
+			case INVENTORY_RESUME:
+			resetMovementKeys();
+			finishSwap();
+			break;
+			
+			default:
+			stage = Stage.IDLE;
+			break;
+		}
+	}
+	
+	private void finishSwap()
+	{
+		stage = Stage.IDLE;
+		timer = delay.getValueI();
+	}
+	
+	private void closeInventory()
+	{
+		if(openedInventory && MC.gui.screen() instanceof InventoryScreen screen)
+			screen.onClose();
+		else
+			MC.player.connection.send(new ServerboundContainerClosePacket(
+				MC.player.inventoryMenu.containerId));
+		
+		openedInventory = false;
+	}
+	
+	private void releaseMovementKeys()
+	{
+		for(KeyMapping key : getMovementKeys())
+			key.setDown(false);
+		
+		MC.player.setSprinting(false);
+	}
+	
+	private void resetMovementKeys()
+	{
+		for(KeyMapping key : getMovementKeys())
+			IKeyMapping.get(key).resetDownState();
+	}
+	
+	private KeyMapping[] getMovementKeys()
+	{
+		return new KeyMapping[]{MC.options.keyUp, MC.options.keyDown,
+			MC.options.keyLeft, MC.options.keyRight, MC.options.keyJump,
+			MC.options.keySprint};
+	}
+	
+	private void countTotems()
 	{
 		totems = InventoryUtils.count(this::isTotem, 40, true);
-		if(totems <= 0)
-			return -1;
-		
-		int totemSlot = InventoryUtils.indexOf(this::isTotem, 40);
-		return InventoryUtils.toNetworkSlot(totemSlot);
 	}
 	
 	private boolean isTotem(ItemStack stack)
 	{
 		return stack.is(Items.TOTEM_OF_UNDYING);
+	}
+	
+	private enum Stage
+	{
+		IDLE,
+		HOTBAR_SWAP,
+		HOTBAR_SWITCH_BACK,
+		INVENTORY_PREPARE,
+		INVENTORY_RESUME;
 	}
 }

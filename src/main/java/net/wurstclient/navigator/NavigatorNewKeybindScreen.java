@@ -24,6 +24,7 @@ import net.wurstclient.WurstClient;
 import net.wurstclient.clickgui.ClickGui;
 import net.wurstclient.keybinds.Keybind;
 import net.wurstclient.keybinds.PossibleKeybind;
+import net.wurstclient.util.WurstFont;
 
 public class NavigatorNewKeybindScreen extends NavigatorScreen
 {
@@ -184,7 +185,7 @@ public class NavigatorNewKeybindScreen extends NavigatorScreen
 		int mouseY, float partialTicks)
 	{
 		ClickGui gui = WurstClient.INSTANCE.getGui();
-		Font tr = minecraft.font;
+		Font tr = WurstFont.get();
 		int txtColor = gui.getTxtColor();
 		
 		// title bar

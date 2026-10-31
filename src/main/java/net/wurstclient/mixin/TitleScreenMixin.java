@@ -7,14 +7,23 @@
  */
 package net.wurstclient.mixin;
 
+import java.net.URI;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
+import com.mojang.blaze3d.Blaze3D;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -22,10 +31,16 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.wurstclient.WurstClient;
 import net.wurstclient.altmanager.screens.AltManagerScreen;
+import net.wurstclient.util.WurstTitleScreen;
+import net.minecraft.client.input.MouseButtonEvent;
 
 @Mixin(TitleScreen.class)
 public abstract class TitleScreenMixin extends Screen
 {
+	@Shadow
+	@Final
+	private static Component COPYRIGHT_TEXT;
+	
 	private AbstractWidget realmsButton = null;
 	private Button altsButton;
 	
@@ -91,5 +106,67 @@ public abstract class TitleScreenMixin extends Screen
 		CallbackInfoReturnable<Component> cir)
 	{
 		cir.setReturnValue(null);
+	}
+	
+	/**
+	 * Hides the vanilla copyright button, since the Wurst 6 style copyright
+	 * text is drawn in the top right corner instead.
+	 */
+	@Inject(method = "init()V", at = @At("RETURN"))
+	private void onInit(CallbackInfo ci)
+	{
+		if(!WurstTitleScreen.isEnabled())
+			return;
+		
+		for(AbstractWidget widget : Screens.getWidgets(this))
+			if(widget.getMessage().equals(COPYRIGHT_TEXT))
+			{
+				widget.visible = false;
+				widget.active = false;
+			}
+	}
+	
+	/**
+	 * Hides the vanilla version text in the bottom left corner.
+	 */
+	@WrapOperation(
+		method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V"))
+	private void onDrawVersionText(GuiGraphicsExtractor graphics, Font font,
+		String text, int x, int y, int color, Operation<Void> original)
+	{
+		if(!WurstTitleScreen.isEnabled())
+			original.call(graphics, font, text, x, y, color);
+	}
+	
+	@Inject(
+		method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V",
+		at = @At("TAIL"))
+	private void onExtractRenderState(GuiGraphicsExtractor graphics, int mouseX,
+		int mouseY, float partialTick, CallbackInfo ci)
+	{
+		if(!WurstTitleScreen.isEnabled())
+			return;
+		
+		WurstTitleScreen.renderTexts(graphics, font, width, height);
+	}
+	
+	@Inject(
+		method = "mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z",
+		at = @At("HEAD"),
+		cancellable = true)
+	private void onMouseClicked(MouseButtonEvent event, boolean doubleClick,
+		CallbackInfoReturnable<Boolean> cir)
+	{
+		if(!WurstTitleScreen.isEnabled() || event.button() != 0)
+			return;
+		
+		if(WurstTitleScreen.isWebsiteLink(font, width, height, event.x(),
+			event.y()))
+		{
+			Blaze3D.openUri(URI.create(WurstTitleScreen.WEBSITE_URL));
+			cir.setReturnValue(true);
+		}
 	}
 }

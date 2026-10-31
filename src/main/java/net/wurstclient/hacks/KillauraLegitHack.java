@@ -33,6 +33,7 @@ import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.settings.SliderSetting.ValueDisplay;
 import net.wurstclient.settings.filterlists.EntityFilterList;
 import net.wurstclient.settings.filters.*;
+import net.wurstclient.util.AttackUtils;
 import net.wurstclient.util.BlockUtils;
 import net.wurstclient.util.EntityUtils;
 import net.wurstclient.util.RenderUtils;
@@ -52,8 +53,8 @@ public final class KillauraLegitHack extends Hack implements UpdateListener,
 		new SliderSetting("Speed randomization",
 			"Helps you bypass anti-cheat plugins by varying the delay between"
 				+ " attacks.\n\n" + "\u00b1100ms is recommended for Vulcan.\n\n"
-				+ "0 (off) is fine for NoCheat+, AAC, Grim, Verus, Spartan, and"
-				+ " vanilla servers.",
+				+ "0 (off) is fine for AAC, Grim, Verus, Spartan, and vanilla"
+				+ " servers.",
 			100, 0, 1000, 50, ValueDisplay.INTEGER.withPrefix("\u00b1")
 				.withSuffix("ms").withLabel(0, "off"));
 	
@@ -217,9 +218,14 @@ public final class KillauraLegitHack extends Hack implements UpdateListener,
 			range.getValue()))
 			return;
 		
+		if(WURST.getHax().criticalsHack.shouldDelayAttack())
+			return;
+		
+		if(AttackUtils.shouldDelayAttack())
+			return;
+		
 		// attack entity
-		MC.gameMode.attack(MC.player, target);
-		attackSwing.swing();
+		AttackUtils.attackAndSwing(target, attackSwing::swing);
 		speed.resetTimer(speedRandMS.getValue());
 	}
 	

@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) 2014-2026 Wurst-Imperium and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
+package net.wurstclient.clickgui.components;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.wurstclient.clickgui.ClickGui;
+import net.wurstclient.clickgui.Component;
+import net.wurstclient.clickgui.screens.SelectFontScreen;
+import net.wurstclient.settings.FontSetting;
+import net.wurstclient.util.RenderUtils;
+import net.wurstclient.util.WurstFont;
+
+public final class FontComponent extends Component
+{
+	private static final ClickGui GUI = WURST.getGui();
+	
+	private final FontSetting setting;
+	
+	public FontComponent(FontSetting setting)
+	{
+		this.setting = setting;
+		setWidth(getDefaultWidth());
+		setHeight(getDefaultHeight());
+	}
+	
+	@Override
+	public void handleMouseClick(double mouseX, double mouseY, int mouseButton,
+		MouseButtonEvent context)
+	{
+		if(mouseButton != InputConstants.MOUSE_BUTTON_LEFT)
+			return;
+		
+		if(mouseX < getX() + getWidth() - getButtonWidth() - 4)
+			return;
+		
+		MC.gui.setScreen(new SelectFontScreen(MC.gui.screen(), setting));
+	}
+	
+	@Override
+	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY,
+		float partialTicks)
+	{
+		int x1 = getX();
+		int x2 = x1 + getWidth();
+		int x3 = x2 - getButtonWidth() - 4;
+		int y1 = getY();
+		int y2 = y1 + getHeight();
+		
+		boolean hovering = isHovering(mouseX, mouseY);
+		boolean hText = hovering && mouseX < x3;
+		boolean hBox = hovering && mouseX >= x3;
+		
+		// tooltip
+		if(hText)
+			GUI.setTooltip(setting.getWrappedDescription(200));
+		else if(hBox)
+			GUI.setTooltip("\u00a7e[left-click]\u00a7r to select font");
+		
+		// background
+		context.fill(x1, y1, x3, y2, getFillColor(false));
+		
+		// button
+		context.fill(x3, y1, x2, y2, getFillColor(hBox));
+		int outlineColor = RenderUtils.toIntColor(GUI.getAcColor(), 0.5F);
+		RenderUtils.drawBorder2D(context, x3, y1, x2, y2, outlineColor);
+		
+		// text
+		int txtColor = GUI.getTxtColor();
+		String labelText = setting.getName() + ":";
+		String buttonText = setting.getSelectedName();
+		context.guiRenderState.up();
+		context.text(WurstFont.get(), labelText, x1, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), buttonText, x3 + 2, y1 + 2, txtColor,
+			false);
+	}
+	
+	private int getFillColor(boolean hovering)
+	{
+		float opacity = GUI.getOpacity() * (hovering ? 1.5F : 1);
+		return RenderUtils.toIntColor(GUI.getBgColor(), opacity);
+	}
+	
+	private int getButtonWidth()
+	{
+		return WurstFont.get().width(setting.getSelectedName());
+	}
+	
+	@Override
+	public int getDefaultWidth()
+	{
+		String text = setting.getName() + ":";
+		return WurstFont.get().width(text) + getButtonWidth() + 6;
+	}
+	
+	@Override
+	public int getDefaultHeight()
+	{
+		return 11;
+	}
+}

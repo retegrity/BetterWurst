@@ -9,7 +9,6 @@ package net.wurstclient.clickgui.components;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.wurstclient.clickgui.ClickGui;
@@ -18,11 +17,11 @@ import net.wurstclient.clickgui.screens.EditSliderScreen;
 import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.util.RenderUtils;
 import net.wurstclient.util.text.WText;
+import net.wurstclient.util.WurstFont;
 
 public final class SliderComponent extends Component
 {
 	private static final ClickGui GUI = WURST.getGui();
-	private static final Font TR = MC.font;
 	private static final int TEXT_HEIGHT = 11;
 	
 	private final SliderSetting setting;
@@ -159,10 +158,11 @@ public final class SliderComponent extends Component
 		// text
 		String name = setting.getName();
 		String value = setting.getValueString();
-		int valueWidth = TR.width(value);
+		int valueWidth = WurstFont.get().width(value);
 		int txtColor = GUI.getTxtColor();
-		context.text(TR, name, x1, y1 + 2, txtColor, false);
-		context.text(TR, value, x2 - valueWidth, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), name, x1, y1 + 2, txtColor, false);
+		context.text(WurstFont.get(), value, x2 - valueWidth, y1 + 2, txtColor,
+			false);
 	}
 	
 	private String getTextTooltip()
@@ -192,8 +192,8 @@ public final class SliderComponent extends Component
 	@Override
 	public int getDefaultWidth()
 	{
-		int nameWidth = TR.width(setting.getName());
-		int valueWidth = TR.width(setting.getValueString());
+		int nameWidth = WurstFont.get().width(setting.getName());
+		int valueWidth = WurstFont.get().width(setting.getValueString());
 		return nameWidth + valueWidth + 6;
 	}
 	

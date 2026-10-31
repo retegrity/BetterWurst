@@ -11,6 +11,7 @@ import net.wurstclient.command.CmdError;
 import net.wurstclient.command.CmdException;
 import net.wurstclient.command.CmdSyntaxError;
 import net.wurstclient.command.Command;
+import net.wurstclient.util.JumpUtils;
 
 public final class JumpCmd extends Command
 {
@@ -28,7 +29,15 @@ public final class JumpCmd extends Command
 		if(!MC.player.onGround() && !WURST.getHax().jetpackHack.isEnabled())
 			throw new CmdError("Can't jump in mid-air.");
 		
-		MC.player.jumpFromGround();
+		// mid-air jumps (Jetpack) can't look legit anyway
+		if(!MC.player.onGround())
+		{
+			MC.player.jumpFromGround();
+			return;
+		}
+		
+		// press jump, so the server sees the jump key like with a real jump
+		JumpUtils.jump();
 	}
 	
 	@Override

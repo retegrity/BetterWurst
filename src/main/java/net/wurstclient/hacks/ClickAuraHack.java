@@ -25,6 +25,7 @@ import net.wurstclient.settings.EnumSetting;
 import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.settings.SliderSetting.ValueDisplay;
 import net.wurstclient.settings.filterlists.EntityFilterList;
+import net.wurstclient.util.AttackUtils;
 import net.wurstclient.util.EntityUtils;
 import net.wurstclient.util.RotationUtils;
 
@@ -132,13 +133,15 @@ public final class ClickAuraHack extends Hack
 		
 		WURST.getHax().autoSwordHack.setSlot(target);
 		
+		if(AttackUtils.shouldDelayAttack())
+			return;
+		
 		// face entity
 		RotationUtils.getNeededRotations(target.getBoundingBox().getCenter())
 			.sendPlayerLookPacket();
 		
 		// attack entity
-		MC.gameMode.attack(player, target);
-		AttackSwing.CLIENT.swing();
+		AttackUtils.attackAndSwing(target, AttackSwing.CLIENT::swing);
 		speed.resetTimer();
 	}
 	

@@ -55,8 +55,8 @@ public final class AutoBuildHack extends Hack
 		"autobuild", DefaultAutoBuildTemplates::createFiles);
 	
 	private final SliderSetting range = new SliderSetting("Range",
-		"How far to reach when placing blocks.\n" + "Recommended values:\n"
-			+ "6.0 for vanilla\n" + "4.25 for NoCheat+",
+		"How far to reach when placing blocks.\n"
+			+ "Vanilla servers allow up to 5.5 in survival.",
 		6, 1, 10, 0.05, ValueDisplay.DECIMAL);
 	
 	private final CheckboxSetting checkLOS = new CheckboxSetting(
@@ -69,6 +69,14 @@ public final class AutoBuildHack extends Hack
 		"Tries to place the same blocks that were saved in the template.\n\n"
 			+ "If the template does not specify block types, it will be built"
 			+ " from whatever block you are holding.",
+		true);
+	
+	private final CheckboxSetting placeInAir = new CheckboxSetting(
+		"Place in mid-air",
+		"Lets AutoBuild place blocks even when there is no neighboring block"
+			+ " to place against, so you don't have to move around to find a"
+			+ " good angle. Blocks that can be placed normally still are.\n\n"
+			+ "Some servers and anti-cheats may not like this.",
 		true);
 	
 	private final FaceTargetSetting faceTarget =
@@ -100,6 +108,7 @@ public final class AutoBuildHack extends Hack
 		addSetting(range);
 		addSetting(checkLOS);
 		addSetting(useSavedBlocks);
+		addSetting(placeInAir);
 		addSetting(faceTarget);
 		addSetting(interactSwing);
 		addSetting(fastPlace);
@@ -252,6 +261,9 @@ public final class AutoBuildHack extends Hack
 			Item item = entry.getValue();
 			
 			BlockPlacingParams params = BlockPlacer.getBlockPlacingParams(pos);
+			if(params == null && placeInAir.isChecked())
+				params = BlockPlacer.getAirPlacingParams(pos);
+			
 			if(params == null || params.distanceSq() > rangeSq
 				|| params.requiresSneaking()
 				|| checkLOS.isChecked() && !params.lineOfSight())

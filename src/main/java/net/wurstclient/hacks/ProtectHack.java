@@ -33,6 +33,7 @@ import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.settings.PauseAttackOnContainersSetting;
 import net.wurstclient.settings.filterlists.EntityFilterList;
 import net.wurstclient.settings.filters.*;
+import net.wurstclient.util.AttackUtils;
 import net.wurstclient.util.EntityUtils;
 
 @DontSaveState
@@ -276,13 +277,15 @@ public final class ProtectHack extends Hack
 		{
 			WURST.getHax().autoSwordHack.setSlot(enemy);
 			
+			if(AttackUtils.shouldDelayAttack())
+				return;
+			
 			// check cooldown
 			if(!speed.isTimeToAttack())
 				return;
 			
 			// attack enemy
-			MC.gameMode.attack(MC.player, enemy);
-			attackSwing.swing();
+			AttackUtils.attackAndSwing(enemy, attackSwing::swing);
 			speed.resetTimer();
 		}
 	}
