@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Stream;
@@ -24,9 +25,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
+import net.wurstclient.events.PacketInputListener;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.hacks.tpaura.TeleportPathFinder;
+import net.wurstclient.hacks.tpaura.TpAuraDebugger;
 import net.wurstclient.mixin.LivingEntityAccessor;
 import net.wurstclient.settings.AttackSpeedSliderSetting;
 import net.wurstclient.settings.CheckboxSetting;
@@ -54,6 +57,8 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	
 	// targets without a path, and the tick when to look for one again
 	private final HashMap<Integer, Integer> noPathUntil = new HashMap<>();
+	
+	private final TpAuraDebugger debugger = new TpAuraDebugger();
 	
 	private final EnumSetting<Mode> mode = new EnumSetting<>("Mode",
 		"\u00a7lNormal\u00a7r mode teleports you next to the target and leaves"
@@ -131,6 +136,15 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	private final PauseAttackOnContainersSetting pauseOnContainers =
 		new PauseAttackOnContainersSetting(true);
 	
+	private final CheckboxSetting debug = new CheckboxSetting("Debug log",
+		"Writes every hit to the game log (latest.log), with the settings it"
+			+ " was sent with and what the server made of it: crit, sweep,"
+			+ " strong (fully charged), weak, no damage (the target was still"
+			+ " protected from the last hit) or no response.\n\n"
+			+ "Every 5 seconds, a summary is shown in chat. Useful for"
+			+ " comparing settings, like Ultra fast mode against Timer.",
+		false);
+	
 	private final EntityFilterList entityFilters =
 		EntityFilterList.genericMeleeCombat();
 	
@@ -150,6 +164,7 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		addSetting(priority);
 		addSetting(swingHand);
 		addSetting(pauseOnContainers);
+		addSetting(debug);
 		
 		entityFilters.forEach(this::addSetting);
 	}
@@ -172,17 +187,22 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		hitsOwed = 0;
 		noPathUntil.clear();
 		EVENTS.add(UpdateListener.class, this);
+		EVENTS.add(PacketInputListener.class, debugger);
 	}
 	
 	@Override
 	protected void onDisable()
 	{
 		EVENTS.remove(UpdateListener.class, this);
+		EVENTS.remove(PacketInputListener.class, debugger);
+		debugger.stop(getDebugSettings());
 	}
 	
 	@Override
 	public void onUpdate()
 	{
+		debugger.update(debug.isChecked(), getDebugSettings());
+		
 		if(isUltraFast())
 		{
 			// don't save up hits while there is nothing to hit
@@ -226,6 +246,10 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		
 		WURST.getHax().autoSwordHack.setSlot(entity);
 		
+		// the attack is sent before this tick's movement packet, so the server
+		// still has the player where they were before teleporting
+		Vec3 serverPos = player.position();
+		
 		// teleport
 		player.setPos(entity.getX() + random.nextInt(3) * 2 - 2, entity.getY(),
 			entity.getZ() + random.nextInt(3) * 2 - 2);
@@ -244,6 +268,8 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		RotationUtils.getNeededRotations(entity.getBoundingBox().getCenter())
 			.sendPlayerLookPacket();
 		
+		debugger.onHit(entity, serverPos, serverPos, String.format(Locale.ROOT,
+			"Normal mode, charge %.2f", player.getAttackStrengthScale(0.5F)));
 		AttackUtils.attackAndSwing(entity,
 			() -> swingHand.swing(InteractionHand.MAIN_HAND));
 		speed.resetTimer();
@@ -321,7 +347,7 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	 * cooldown, and on servers that count it by ticks the client says it had,
 	 * by pretending to have had that many ticks.
 	 */
-	private void fakeFullCooldown(Vec3 spot, boolean onGround)
+	private int fakeFullCooldown(Vec3 spot, boolean onGround)
 	{
 		LocalPlayer player = MC.player;
 		int cooldown =
@@ -343,6 +369,24 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		
 		// so that Criticals and the hit effects work as usual
 		((LivingEntityAccessor)player).wurst_setAttackStrengthTicker(cooldown);
+		return ticks;
+	}
+	
+	/**
+	 * The settings that matter for the debug log's summary.
+	 */
+	private String getDebugSettings()
+	{
+		String settings = String.format(Locale.ROOT, "%s mode, timer %.1f",
+			mode.getSelected(), WURST.getHax().timerHack.getTimerSpeed());
+		
+		if(isUltraFast())
+			settings += String.format(Locale.ROOT,
+				", ultra fast %d hits/s, %s fake ticks (%s)",
+				ultraFastSpeed.getValueI(), ultraFastTicks.getValueString(),
+				fakeTickPackets.getSelected());
+		
+		return settings;
 	}
 	
 	private boolean isUltraFast()
@@ -390,10 +434,18 @@ public final class TpAuraHack extends Hack implements UpdateListener
 			Vec3 spot = moved ? path.get(path.size() - 1) : home;
 			for(int i = 0; i < hits; i++)
 			{
+				int fakeTicks = 0;
 				if(isUltraFast())
-					fakeFullCooldown(spot,
+					fakeTicks = fakeFullCooldown(spot,
 						moved ? TeleportPathFinder.isOnGround(spot)
 							: player.onGround());
+				
+				if(debug.isChecked())
+					debugger.onHit(target, spot, home, String.format(
+						Locale.ROOT,
+						"%d teleports, hit %d/%d, %d fake ticks, charge %.2f",
+						path.size(), i + 1, hits, fakeTicks,
+						player.getAttackStrengthScale(0.5F)));
 				
 				AttackUtils.attackAndSwing(target,
 					() -> swingHand.swing(InteractionHand.MAIN_HAND));
