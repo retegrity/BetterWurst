@@ -1,7 +1,7 @@
 <img width="1050" height="285" alt="image" src="https://github.com/user-attachments/assets/6ff8ef52-7b01-4029-b5b7-86efa3f292e7" />
 <img width="1500" height="380" alt="wurst_src" src="https://github.com/user-attachments/assets/1bd9cc3d-4afd-4e2b-908e-0b58c6cc5dff" />
 
-# Wurst Client v7 (improved by retegrity and Opus 5.5)
+# BetterWurst Client v7 (by retegrity and Opus 5.5)
 
 this is a fork of wurst that i made using claude opus 5.5 which adds a ton of features that i and some other people suggested, it also fixes some bugs i found, and a bug found by another person([/d/1709](https://wurstforum.net/d/1709-autoeat-crashes-when-holding-a-bucket-of-fish))
 
