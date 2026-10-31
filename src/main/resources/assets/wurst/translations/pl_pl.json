@@ -256,7 +256,7 @@
   "description.wurst.hack.restock": "Automatycznie uzupełnia rękę wybranymi przedmiotami z ekwipunku. Działa lepiej z FastPlace.",
   "description.wurst.hack.safewalk": "Zapobiega spadaniu z krawędzi.",
   "description.wurst.hack.scaffold": "Automatycznie umieszcza bloki pod nogami.",
-  "description.wurst.hack.search": "Pomaga znaleźć konkretne bloki, podświetlając je kolorem tęczy.",
+  "description.wurst.hack.blockesp": "Pomaga znaleźć konkretne bloki, podświetlając je kolorem tęczy.",
   "description.wurst.hack.skinderp": "Losowo przełącza części twojego skina.",
   "description.wurst.hack.sneak": "Sprawia, że automatycznie się skradasz.",
   "description.wurst.hack.snowshoe": "Umożliwia chodzenie po sypkim śniegu.",

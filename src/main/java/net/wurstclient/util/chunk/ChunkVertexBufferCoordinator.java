@@ -82,7 +82,7 @@ public final class ChunkVertexBufferCoordinator extends AbstractChunkCoordinator
 	
 	private void buildBuffer(ChunkSearcher searcher)
 	{
-		if(buffers.containsKey(searcher.getPos()))
+		if(buffers.containsKey(searcher.getPos()) || !searcher.isDone())
 			return;
 		
 		EasyVertexBuffer vertexBuffer = EasyVertexBuffer

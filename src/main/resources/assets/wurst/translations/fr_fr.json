@@ -130,7 +130,7 @@
   "description.wurst.hack.remoteview": "Permet de voir le monde comme quelqu'un d'autre.\nUtilisez la commande .rv pour qu'il cible une entité spécifique.",
   "description.wurst.hack.safewalk": "Vous empêche de tomber des bords.",
   "description.wurst.hack.scaffold": "Place automatiquement des blocs sous vos pieds.",
-  "description.wurst.hack.search": "Vous aide à trouver des blocs spécifiques en les mettant en évidence en couleur arc-en-ciel.",
+  "description.wurst.hack.blockesp": "Vous aide à trouver des blocs spécifiques en les mettant en évidence en couleur arc-en-ciel.",
   "description.wurst.hack.skinderp": "Bascule aléatoirement des parties de votre skin.",
   "description.wurst.hack.sneak": "Vous fait vous s'accroupir automatiquement.",
   "description.wurst.hack.snowshoe": "Permet de marcher sur de la poudreuse.",

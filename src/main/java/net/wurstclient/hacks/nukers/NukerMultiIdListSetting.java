@@ -7,6 +7,7 @@
  */
 package net.wurstclient.hacks.nukers;
 
+import net.wurstclient.hacks.BlockEspHack;
 import net.wurstclient.hacks.NukerHack;
 import net.wurstclient.hacks.NukerLegitHack;
 import net.wurstclient.hacks.SpeedNukerHack;
@@ -14,8 +15,8 @@ import net.wurstclient.settings.BlockListSetting;
 
 /**
  * A {@link BlockListSetting} named "MultiID List" containing all of Minecraft's
- * ores by default. Used by {@link NukerHack}, {@link NukerLegitHack}, and
- * {@link SpeedNukerHack}.
+ * ores by default. Used by {@link NukerHack}, {@link NukerLegitHack},
+ * {@link SpeedNukerHack}, and {@link BlockEspHack}.
  */
 public final class NukerMultiIdListSetting extends BlockListSetting
 {

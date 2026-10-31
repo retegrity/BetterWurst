@@ -11,8 +11,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiPredicate;
 
 import net.minecraft.core.BlockPos;
@@ -35,6 +37,13 @@ public abstract class AbstractChunkCoordinator implements PacketInputListener
 	protected final Set<ChunkPos> chunksToUpdate =
 		Collections.synchronizedSet(new HashSet<>());
 	
+	// filled by the network thread, applied on the client thread
+	private final ConcurrentLinkedQueue<PendingBlockUpdates> blockUpdates =
+		new ConcurrentLinkedQueue<>();
+	
+	// changes whenever the available matches change
+	private int matchesVersion;
+	
 	public AbstractChunkCoordinator(BiPredicate<BlockPos, BlockState> query,
 		ChunkAreaSetting area)
 	{
@@ -42,6 +51,13 @@ public abstract class AbstractChunkCoordinator implements PacketInputListener
 		this.area = Objects.requireNonNull(area);
 	}
 	
+	/**
+	 * Adds and removes {@link ChunkSearcher}s, applies block updates and takes
+	 * over finished results.
+	 *
+	 * @return true if searchers were added or removed, or if block updates
+	 *         changed their results
+	 */
 	public boolean update()
 	{
 		DimensionType dimension = WurstClient.MC.level.dimensionType();
@@ -72,6 +88,7 @@ public abstract class AbstractChunkCoordinator implements PacketInputListener
 				searcher.cancel();
 				onRemove(searcher);
 				searchersChanged = true;
+				matchesVersion++;
 			}
 		}
 		
@@ -88,7 +105,45 @@ public abstract class AbstractChunkCoordinator implements PacketInputListener
 			searchersChanged = true;
 		}
 		
+		// apply block updates without searching the chunks again
+		for(PendingBlockUpdates pending; (pending =
+			blockUpdates.poll()) != null;)
+		{
+			ChunkSearcher searcher = searchers.get(pending.chunkPos());
+			if(searcher != null
+				&& searcher.applyBlockUpdates(pending.updates()))
+			{
+				searchersChanged = true;
+				matchesVersion++;
+			}
+		}
+		
+		// take over finished results
+		for(ChunkSearcher searcher : searchers.values())
+			if(searcher.update())
+				matchesVersion++;
+			
 		return searchersChanged;
+	}
+	
+	/**
+	 * Queues block updates for the chunk at the given position. Safe to call
+	 * from the network thread.
+	 */
+	protected void enqueueBlockUpdates(ChunkPos chunkPos,
+		List<ChunkSearcher.BlockUpdate> updates)
+	{
+		if(!updates.isEmpty())
+			blockUpdates.add(new PendingBlockUpdates(chunkPos, updates));
+	}
+	
+	/**
+	 * Changes whenever searchers are added or removed, finish, or have their
+	 * results changed by block updates.
+	 */
+	public int getMatchesVersion()
+	{
+		return matchesVersion;
 	}
 	
 	protected void onRemove(ChunkSearcher searcher)
@@ -101,6 +156,8 @@ public abstract class AbstractChunkCoordinator implements PacketInputListener
 		searchers.values().forEach(ChunkSearcher::cancel);
 		searchers.clear();
 		chunksToUpdate.clear();
+		blockUpdates.clear();
+		matchesVersion++;
 	}
 	
 	public boolean isDone()
@@ -113,6 +170,8 @@ public abstract class AbstractChunkCoordinator implements PacketInputListener
 		this.query = Objects.requireNonNull(query);
 		searchers.values().forEach(ChunkSearcher::cancel);
 		searchers.clear();
+		blockUpdates.clear();
+		matchesVersion++;
 	}
 	
 	public void setTargetBlock(Block block)
@@ -129,4 +188,8 @@ public abstract class AbstractChunkCoordinator implements PacketInputListener
 			return chunks;
 		}
 	}
+	
+	private record PendingBlockUpdates(ChunkPos chunkPos,
+		List<ChunkSearcher.BlockUpdate> updates)
+	{}
 }

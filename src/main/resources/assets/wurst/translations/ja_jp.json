@@ -172,7 +172,7 @@
   "description.wurst.hack.restock": "インベントリから選択したアイテムを自動的に手に補充します。 FastPlace と併用するとより効果的です。",
   "description.wurst.hack.safewalk": "ブロックの端からの落下を防ぐ。",
   "description.wurst.hack.scaffold": "足元に自動でブロックを設置する。",
-  "description.wurst.hack.search": "特定のブロックを虹色でハイライト表示し、探しやすくする。",
+  "description.wurst.hack.blockesp": "特定のブロックを虹色でハイライト表示し、探しやすくする。",
   "description.wurst.hack.skinderp": "スキンのパーツの表示/非表示をランダムに切り替える。",
   "description.wurst.hack.sneak": "自動でしゃがむ。",
   "description.wurst.hack.snowshoe": "粉雪ブロックの上を歩くことができるようになる。",

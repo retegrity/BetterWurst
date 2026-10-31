@@ -73,6 +73,7 @@ public final class HackList implements UpdateListener
 	public final BarrierEspHack barrierEspHack = new BarrierEspHack();
 	public final BaseFinderHack baseFinderHack = new BaseFinderHack();
 	public final BlinkHack blinkHack = new BlinkHack();
+	public final BlockEspHack blockEspHack = new BlockEspHack();
 	public final BlockHitHack blockHitHack = new BlockHitHack();
 	public final BoatFlyHack boatFlyHack = new BoatFlyHack();
 	public final BonemealAuraHack bonemealAuraHack = new BonemealAuraHack();
@@ -186,7 +187,6 @@ public final class HackList implements UpdateListener
 	public final RestockHack restockHack = new RestockHack();
 	public final SafeWalkHack safeWalkHack = new SafeWalkHack();
 	public final ScaffoldHack scaffoldHack = new ScaffoldHack();
-	public final SearchHack searchHack = new SearchHack();
 	public final SkinDerpHack skinDerpHack = new SkinDerpHack();
 	public final SmoothHandBobHack smoothHandBobHack = new SmoothHandBobHack();
 	public final SneakHack sneakHack = new SneakHack();
