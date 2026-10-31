@@ -22,6 +22,7 @@ import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
@@ -52,8 +53,20 @@ public final class TpAuraHack extends Hack implements UpdateListener
 	// how close the player teleports to the target in Path mode
 	private static final double PATH_REACH = 3;
 	
+	// if the server moves the player after a trip, the player is sent back
+	private static final int RETURN_WINDOW_TICKS = 20;
+	private static final int RETURN_RETRY_DELAY_TICKS = 4;
+	private static final double RETURN_BASE_DISTANCE = 4;
+	private static final int MAX_RETURN_ATTEMPTS = 3;
+	
 	private final Random random = new Random();
 	private double hitsOwed;
+	
+	// where the last trip started, and when
+	private Vec3 lastHome;
+	private int lastTripTick;
+	private int returnAttempts;
+	private int nextReturnTick;
 	
 	// targets without a path, and the tick when to look for one again
 	private final HashMap<Integer, Integer> noPathUntil = new HashMap<>();
@@ -185,6 +198,7 @@ public final class TpAuraHack extends Hack implements UpdateListener
 		
 		speed.resetTimer();
 		hitsOwed = 0;
+		lastHome = null;
 		noPathUntil.clear();
 		EVENTS.add(UpdateListener.class, this);
 		EVENTS.add(PacketInputListener.class, debugger);
@@ -284,6 +298,9 @@ public final class TpAuraHack extends Hack implements UpdateListener
 			|| player.isSleeping())
 			return;
 		
+		if(returnHomeIfMoved())
+			return;
+		
 		Stream<Entity> stream = EntityUtils.getMeleeAttackableEntities();
 		double rangeSq = Math.pow(pathRange.getValue(), 2);
 		stream =
@@ -336,10 +353,102 @@ public final class TpAuraHack extends Hack implements UpdateListener
 			
 			PacketBatcher
 				.run(() -> attackThroughPath(target, home, path, hits));
+			
+			// remember where to go back to, if the server moves the player
+			lastHome = path.isEmpty() ? null : home;
+			lastTripTick = tick;
+			returnAttempts = 0;
+			nextReturnTick = 0;
 			speed.resetTimer();
 			hitsOwed -= hits;
 			return;
 		}
+	}
+	
+	/**
+	 * If the server moved the player right after a trip, like when it doesn't
+	 * accept a teleport and puts the player back where it thinks they were,
+	 * the player would stay next to the target, and the next trip would treat
+	 * that as home. So the player is sent back to where the trip started.
+	 *
+	 * @return whether it sent the player back
+	 */
+	private boolean returnHomeIfMoved()
+	{
+		if(lastHome == null)
+			return false;
+		
+		LocalPlayer player = MC.player;
+		int ticksSince = player.tickCount - lastTripTick;
+		if(ticksSince > RETURN_WINDOW_TICKS)
+		{
+			lastHome = null;
+			return false;
+		}
+		
+		// moving normally can't take the player this far from home so fast
+		Vec3 from = player.position();
+		double offset = from.distanceTo(lastHome);
+		if(offset <= RETURN_BASE_DISTANCE + ticksSince)
+			return false;
+			
+		// give the server time to settle before the next try, and don't attack
+		// from where the server put the player in the meantime
+		if(player.tickCount < nextReturnTick)
+			return true;
+		
+		if(++returnAttempts > MAX_RETURN_ATTEMPTS)
+		{
+			debugger.note("The server moved you " + (int)offset
+				+ " blocks from home, and it didn't work to go back");
+			lastHome = null;
+			return false;
+		}
+		
+		double eyeHeight = player.getEyeHeight(player.getPose());
+		AABB homeBox = new AABB(lastHome.x, lastHome.y, lastHome.z, lastHome.x,
+			lastHome.y + eyeHeight, lastHome.z);
+		ArrayList<Vec3> path =
+			new TeleportPathFinder(homeBox, 1.5).find(from, true);
+		if(path == null)
+		{
+			debugger.note("The server moved you " + (int)offset
+				+ " blocks from home, and there is no path back");
+			lastHome = null;
+			return false;
+		}
+		
+		Vec3 home = lastHome;
+		path.add(home);
+		debugger.note(String.format(Locale.ROOT,
+			"The server moved you %.1f blocks from home, sending you back"
+				+ " with %d teleports (attempt %d)",
+			offset, path.size(), returnAttempts));
+		
+		PacketBatcher.run(() -> {
+			Vec3 previous = from;
+			for(int i = 0; i < path.size(); i++)
+			{
+				Vec3 pos = path.get(i);
+				boolean onGround = isOnGround(previous, pos,
+					i == path.size() - 1 && player.onGround());
+				if(i < path.size() - 1)
+					player.connection.send(new ServerboundMovePlayerPacket.Pos(
+						pos, onGround, false));
+				else
+					player.connection
+						.send(new ServerboundMovePlayerPacket.PosRot(pos,
+							WURST.getRotationFaker().getSentYaw(),
+							WURST.getRotationFaker().getSentPitch(), onGround,
+							player.horizontalCollision));
+				previous = pos;
+			}
+		});
+		
+		player.setPos(home);
+		lastTripTick = player.tickCount;
+		nextReturnTick = player.tickCount + RETURN_RETRY_DELAY_TICKS;
+		return true;
 	}
 	
 	/**

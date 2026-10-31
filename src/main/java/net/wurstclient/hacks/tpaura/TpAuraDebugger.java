@@ -23,6 +23,7 @@ import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
 import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -62,6 +63,11 @@ public final class TpAuraDebugger implements PacketInputListener
 	
 	private volatile boolean active;
 	private int nextId;
+	
+	// the latest hit, for telling when the server moved the player
+	private Vec3 lastHome;
+	private int lastHitId;
+	private long lastHitMs;
 	private Stats stats = new Stats();
 	private long periodStart;
 	
@@ -104,6 +110,15 @@ public final class TpAuraDebugger implements PacketInputListener
 	}
 	
 	/**
+	 * Adds a line to the log, if the debug log is on.
+	 */
+	public void note(String text)
+	{
+		if(active)
+			log("%s", text);
+	}
+	
+	/**
 	 * Called right before each attack.
 	 */
 	public void onHit(Entity target, Vec3 spot, Vec3 home, String info)
@@ -116,6 +131,9 @@ public final class TpAuraDebugger implements PacketInputListener
 			new Hit(++nextId, target.getId(), getName(target), spot, home, now);
 		pending.add(hit);
 		stats.sent++;
+		lastHome = home;
+		lastHitId = hit.id;
+		lastHitMs = now;
 		
 		log("#%d sent to %s, %.1f blocks from home, %.1f from the spot it"
 			+ " hits from: %s", hit.id, hit.targetName,
@@ -138,7 +156,8 @@ public final class TpAuraDebugger implements PacketInputListener
 			|| packet instanceof ClientboundDamageEventPacket
 			|| packet instanceof ClientboundAnimatePacket
 			|| packet instanceof ClientboundHurtAnimationPacket
-			|| packet instanceof ClientboundEntityEventPacket)
+			|| packet instanceof ClientboundEntityEventPacket
+			|| packet instanceof ClientboundPlayerPositionPacket)
 			received.add(packet);
 	}
 	
@@ -155,6 +174,34 @@ public final class TpAuraDebugger implements PacketInputListener
 				onHurt(hurt.id(), "hurt animation");
 			else if(packet instanceof ClientboundEntityEventPacket event)
 				onEntityEvent(event);
+			else if(packet instanceof ClientboundPlayerPositionPacket teleport)
+				onServerTeleport(teleport, now);
+	}
+	
+	/**
+	 * The server sends this when it puts the player somewhere, like when it
+	 * doesn't accept a movement packet. Until the client confirms it, the
+	 * server ignores all of the player's movement.
+	 */
+	private void onServerTeleport(ClientboundPlayerPositionPacket packet,
+		long now)
+	{
+		stats.teleports++;
+		Vec3 pos = packet.change().position();
+		String relative = packet.relatives().isEmpty() ? ""
+			: " (relative: " + packet.relatives() + ")";
+		
+		if(lastHome == null)
+		{
+			log("server moved you to %.1f %.1f %.1f, teleport #%d%s", pos.x,
+				pos.y, pos.z, packet.id(), relative);
+			return;
+		}
+		
+		log("server moved you to %.1f %.1f %.1f, teleport #%d%s: %.1f blocks"
+			+ " from where the last trip started (#%d, %d ms ago)", pos.x,
+			pos.y, pos.z, packet.id(), relative, pos.distanceTo(lastHome),
+			lastHitId, now - lastHitMs);
 	}
 	
 	/**
@@ -318,13 +365,15 @@ public final class TpAuraDebugger implements PacketInputListener
 			"Last %.1fs (%s): %d hits sent, %d crit, %d sweep, %d strong,"
 				+ " %d weak, %d no damage, %d no response (%d heard at home),"
 				+ " %d with knockback, %d damage events, %d crit animations,"
-				+ " %d hurt animations, %.1f health lost (%.1f/s). All attack"
+				+ " %d hurt animations, %d server teleports, %.1f health lost"
+				+ " (%.1f/s). All attack"
 				+ " sounds heard: %s, %d of them not matching any hit",
 			seconds, settings, stats.sent, stats.crit, stats.sweep,
 			stats.strong, stats.weak, stats.noDamage, stats.noResponse,
 			stats.atHome, stats.knockback, stats.damageEvents,
-			stats.critAnimations, stats.hurtAnimations, stats.healthLost,
-			stats.healthLost / seconds, stats.getHeard(), stats.unmatched);
+			stats.critAnimations, stats.hurtAnimations, stats.teleports,
+			stats.healthLost, stats.healthLost / seconds, stats.getHeard(),
+			stats.unmatched);
 		
 		LOGGER.info(summary);
 		ChatUtils.message("TP-Aura debug: " + summary);
@@ -458,6 +507,7 @@ public final class TpAuraDebugger implements PacketInputListener
 		private int damageEvents;
 		private int critAnimations;
 		private int hurtAnimations;
+		private int teleports;
 		private int atHome;
 		private int unmatched;
 		private float healthLost;
