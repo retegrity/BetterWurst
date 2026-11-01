@@ -24,6 +24,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Input;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.InputFaker;
 import net.wurstclient.InputFaker.TempRealInput;
@@ -104,10 +105,27 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 		HackList hax = WurstClient.INSTANCE.getHax();
 		boolean shift = (keys.shift() || hax.sneakHack.shouldForceSneak())
 			&& !hax.boatFlyHack.shouldHideSneak();
+		boolean releaseForward = hax.wTapHack.shouldReleaseForward();
+		boolean forward = keys.forward() && !releaseForward;
 		
 		if(jump != keys.jump() || shift != keys.shift())
 			player.input.keyPresses = new Input(keys.forward(), keys.backward(),
 				keys.left(), keys.right(), jump, shift, keys.sprint());
+		
+		// W-Tap: the movement vector was already calculated from the keys
+		if(forward != keys.forward())
+		{
+			keys = player.input.keyPresses;
+			player.input.keyPresses =
+				new Input(forward, keys.backward(), keys.left(), keys.right(),
+					keys.jump(), keys.shift(), keys.sprint());
+			
+			float forwardImpulse = keys.backward() ? -1 : 0;
+			float leftImpulse =
+				keys.left() == keys.right() ? 0 : keys.left() ? 1 : -1;
+			((ClientInputAccessor)player.input).wurst_setMoveVector(
+				new Vec2(leftImpulse, forwardImpulse).normalized());
+		}
 	}
 	
 	@Inject(method = "sendPosition()V", at = @At("HEAD"))
