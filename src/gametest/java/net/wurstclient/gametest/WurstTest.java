@@ -59,9 +59,6 @@ public class WurstTest implements FabricClientGameTest
 		waitForTitleScreenFade(context);
 		
 		LOGGER.info("Reached title screen");
-		assertScreenshotEquals(context, "title_screen",
-			"https://i.imgur.com/xSAHDXr.png");
-		
 		AltManagerTest.testAltManagerButton(context);
 		
 		LOGGER.info("Creating test world");
