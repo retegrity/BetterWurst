@@ -35,6 +35,7 @@
   },
   "conflicts": {},
   "breaks": {
+    "exploitpreventer": "*",
     "wi_zoom": "*",
     "wi-zoom": "*",
     "vulkanmod": "*"

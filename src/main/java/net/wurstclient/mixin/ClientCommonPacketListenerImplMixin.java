@@ -37,7 +37,25 @@ public abstract class ClientCommonPacketListenerImplMixin
 {
 	@Shadow
 	@Final
+	protected Connection connection;
+	
+	@Shadow
+	@Final
 	protected ServerData serverData;
+	
+	/**
+	 * Lets NoModDetection check whether the server is on a local address
+	 * before the pack gets downloaded.
+	 */
+	@Inject(
+		method = "handleResourcePackPush(Lnet/minecraft/network/protocol/common/ClientboundResourcePackPushPacket;)V",
+		at = @At("HEAD"))
+	private void onHandleResourcePackPushHead(
+		ClientboundResourcePackPushPacket packet, CallbackInfo ci)
+	{
+		WurstClient.INSTANCE.getOtfs().noModDetectionOtf
+			.onServerPackPush(connection.getRemoteAddress());
+	}
 	
 	/**
 	 * PacksBypass's "Bypass" mode. Runs after vanilla has checked the pack's
