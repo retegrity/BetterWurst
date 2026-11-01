@@ -140,6 +140,15 @@ public final class PacksBypassOtf extends OtherFeature
 			updateServerTranslations();
 	}
 	
+	/**
+	 * The translations loaded by "Load server language files", or an empty
+	 * map if there are none.
+	 */
+	public Map<String, String> getServerTranslations()
+	{
+		return serverTranslations;
+	}
+	
 	private void updateServerTranslations()
 	{
 		serverTranslations = loadLanguageFiles.isChecked()

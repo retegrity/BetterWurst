@@ -25,6 +25,7 @@ public final class OtfList
 	public final KeybindManagerOtf keybindManagerOtf = new KeybindManagerOtf();
 	public final LastServerOtf lastServerOtf = new LastServerOtf();
 	public final NoChatReportsOtf noChatReportsOtf = new NoChatReportsOtf();
+	public final NoModDetectionOtf noModDetectionOtf = new NoModDetectionOtf();
 	public final NoTelemetryOtf noTelemetryOtf = new NoTelemetryOtf();
 	public final PacksBypassOtf packsBypassOtf = new PacksBypassOtf();
 	public final ReconnectOtf reconnectOtf = new ReconnectOtf();
