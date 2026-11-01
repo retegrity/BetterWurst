@@ -72,6 +72,11 @@ public final class HackListOtf extends OtherFeature
 	private final SliderSetting rainbowSaturation = new SliderSetting(
 		"Rainbow saturation", 1, 0, 1, 0.01, ValueDisplay.PERCENTAGE);
 	
+	private final CheckboxSetting shadow = new CheckboxSetting("Shadow",
+		"Draws a shadow behind the text. Turn this off to make the text look"
+			+ " like the version text next to the Wurst logo.",
+		true);
+	
 	private final CheckboxSetting background = new CheckboxSetting("Background",
 		"Draws a darkened background behind the entries.", false);
 	
@@ -120,6 +125,7 @@ public final class HackListOtf extends OtherFeature
 		addSetting(rainbowSpeed);
 		addSetting(rainbowSpread);
 		addSetting(rainbowSaturation);
+		addSetting(shadow);
 		addSetting(background);
 		addSetting(backgroundColor);
 		addSetting(backgroundOpacity);
@@ -154,6 +160,11 @@ public final class HackListOtf extends OtherFeature
 	public boolean isAnimations()
 	{
 		return animations.isChecked();
+	}
+	
+	public boolean isShadow()
+	{
+		return shadow.isChecked();
 	}
 	
 	public Comparator<Hack> getComparator()
