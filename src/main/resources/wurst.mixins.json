@@ -12,6 +12,7 @@
     "ChatComponentMixin",
     "ChatScreenMixin",
     "ClientCommonPacketListenerImplMixin",
+    "ClientInputAccessor",
     "ClientPacketListenerMixin",
     "CommandSuggestionsMixin",
     "ConnectionMixin",

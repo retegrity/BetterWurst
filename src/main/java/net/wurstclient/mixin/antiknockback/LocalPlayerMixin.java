@@ -33,7 +33,10 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 	@Override
 	public void lerpMotion(Vec3 vec)
 	{
-		super.lerpMotion(WurstClient.INSTANCE.getHax().antiKnockbackHack
-			.modifyKnockback(vec));
+		Vec3 knockback = WurstClient.INSTANCE.getHax().antiKnockbackHack
+			.modifyKnockback(vec);
+		super.lerpMotion(knockback);
+		WurstClient.INSTANCE.getHax().jumpResetHack
+			.onVelocity((LocalPlayer)(Object)this, knockback);
 	}
 }
