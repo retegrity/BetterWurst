@@ -127,15 +127,6 @@ public final class KillauraHack extends Hack
 				+ "Slower but can help with anti-cheat plugins.",
 			false);
 	
-	private final CheckboxSetting movementCorrection = new CheckboxSetting(
-		"Movement correction",
-		"Calculates your movement from the rotation that the server sees"
-			+ " instead of where your camera points, and adjusts your keys so"
-			+ " you still walk the way you intended.\n\n"
-			+ "Helps against anti-cheat plugins that check whether your"
-			+ " movement matches your rotation.",
-		false);
-	
 	private final EntityFilterList entityFilters =
 		EntityFilterList.genericMeleeCombat();
 	
@@ -177,7 +168,6 @@ public final class KillauraHack extends Hack
 		addSetting(damageIndicator);
 		addSetting(pauseOnContainers);
 		addSetting(checkLOS);
-		addSetting(movementCorrection);
 		
 		entityFilters.forEach(this::addSetting);
 	}
@@ -272,11 +262,10 @@ public final class KillauraHack extends Hack
 		// keep looking at the target on every tick, not just when attacking
 		if(human)
 			WURST.getRotationFaker().faceVectorHumanly(hitVec,
-				turnSpeed.getValueF(), acceleration.getValueF(), ROTATION_TICKS,
-				movementCorrection.isChecked());
+				turnSpeed.getValueF(), acceleration.getValueF(),
+				ROTATION_TICKS);
 		else
-			WURST.getRotationFaker().faceVectorSilently(hitVec, ROTATION_TICKS,
-				movementCorrection.isChecked());
+			WURST.getRotationFaker().faceVectorSilently(hitVec, ROTATION_TICKS);
 		
 		if(!inAttackRange || !speed.isTimeToAttack())
 			return;

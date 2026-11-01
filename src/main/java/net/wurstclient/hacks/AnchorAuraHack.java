@@ -85,13 +85,6 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 			+ " once AnchorAura is done.",
 		30, 10, 180, 1, ValueDisplay.DEGREES.withSuffix("/tick"));
 	
-	private final CheckboxSetting movementCorrection =
-		new CheckboxSetting("Movement correction",
-			"Moves you in the direction of your server-side rotation while"
-				+ " AnchorAura is aiming, the way the server expects it."
-				+ " Needed for anti-cheats like Grim.",
-			true);
-	
 	private final CheckboxSetting switchBack = new CheckboxSetting(
 		"Switch back",
 		"Switches back to the item you were holding once AnchorAura is done.",
@@ -131,7 +124,6 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 		addSetting(actionDelay);
 		addSetting(turnSpeed);
 		addSetting(returnSpeed);
-		addSetting(movementCorrection);
 		addSetting(switchBack);
 		addSetting(swingHand);
 		
@@ -214,8 +206,7 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 		// keep aiming during the delay, but don't click
 		WURST.getRotationFaker().faceVectorSmoothly(
 			aimPoint.get(action.clickPos(), action.side(), action.hitVec()),
-			turnSpeed.getValueF(), 2, movementCorrection.isChecked(),
-			returnSpeed.getValueF());
+			turnSpeed.getValueF(), 2, returnSpeed.getValueF());
 		rotationGuard.onTurn(WURST.getRotationFaker().getLastTurnYawDelta(),
 			WURST.getRotationFaker().getLastTurnPitchDelta());
 		
