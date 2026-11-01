@@ -7,6 +7,8 @@
  */
 package net.wurstclient.hacks;
 
+import java.util.Arrays;
+
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
@@ -38,6 +40,16 @@ public final class FastLungeHack extends Hack implements UpdateListener
 			+ " values miss fewer lunges on laggy connections.",
 		2, 2, 10, 1, ValueDisplay.INTEGER.withSuffix(" ticks"));
 	
+	private final SliderSetting burst = new SliderSetting("Lunges per burst",
+		"How many times to lunge at once. The server adds up all lunges of the"
+			+ " same tick into one big boost.\n\n"
+			+ "Every lunge costs one durability. Hunger only builds up to 10 food"
+			+ " points' worth at a time, so big bursts use less food per lunge,"
+			+ " but your food keeps draining for a while afterwards.\n\n"
+			+ "Values above 1 need a free hotbar slot or an item without an"
+			+ " attack speed modifier.",
+		1, 1, 10, 1, ValueDisplay.INTEGER);
+	
 	private final SliderSetting maxLunges = new SliderSetting("Max lunges",
 		"FastLunge turns itself off after this many lunges, or once it can't"
 			+ " lunge anymore (not enough food, spear about to break, etc.).",
@@ -49,6 +61,10 @@ public final class FastLungeHack extends Hack implements UpdateListener
 	// Lunge needs at least this much food, unless you are in creative mode
 	private static final int MIN_FOOD = 7;
 	
+	// how long to wait for the server to confirm durability changes before
+	// assuming that Unbreaking prevented them
+	private static final int DAMAGE_SYNC_TICKS = 20;
+	
 	private int spearSlot;
 	private int restSlot;
 	private int originalSlot;
@@ -57,16 +73,25 @@ public final class FastLungeHack extends Hack implements UpdateListener
 	private int lungeLevel;
 	
 	// The server only sends food updates after a while, so predict them.
-	// Every 4 exhaustion (1 per Lunge level) uses up one saturation or food
-	// point.
+	// Every lunge adds 4 exhaustion per Lunge level (capped at 40), and every
+	// tick, 4 of it use up one saturation or food point.
 	private int predictedFood;
 	private float predictedSaturation;
+	private float predictedExhaustion;
+	
+	// Durability used up by recent lunges that the server hasn't confirmed
+	// yet, one entry per tick. Without this, a big burst could break the
+	// spear before its durability updates.
+	private final int[] unconfirmedDamage = new int[DAMAGE_SYNC_TICKS];
+	private int tick;
+	private int lastDamageValue;
 	
 	public FastLungeHack()
 	{
 		super("FastLunge");
 		setCategory(Category.MOVEMENT);
 		addSetting(interval);
+		addSetting(burst);
 		addSetting(maxLunges);
 	}
 	
@@ -81,6 +106,11 @@ public final class FastLungeHack extends Hack implements UpdateListener
 	 * The switch back is sent the next tick, because Grim's PacketOrderE
 	 * flags switching slots in the same tick as an attack. That's why it can
 	 * lunge every 2 ticks at most.
+	 *
+	 * Bursts work because the server also doesn't update your attack speed or
+	 * food level between packets. Each stab resets the attack cooldown, but
+	 * the leniency of 5 ticks still covers the rest item's cooldown, and the
+	 * Lunge food check sees the same food level every time.
 	 */
 	@Override
 	protected void onEnable()
@@ -111,6 +141,11 @@ public final class FastLungeHack extends Hack implements UpdateListener
 		FoodData food = player.getFoodData();
 		predictedFood = food.getFoodLevel();
 		predictedSaturation = food.getSaturationLevel();
+		predictedExhaustion = 0;
+		Arrays.fill(unconfirmedDamage, 0);
+		tick = 0;
+		lastDamageValue =
+			player.getInventory().getItem(spearSlot).getDamageValue();
 		
 		// If you aren't already holding the rest item, the server needs a
 		// tick with it in your hand first, so your attack speed updates.
@@ -137,21 +172,20 @@ public final class FastLungeHack extends Hack implements UpdateListener
 	@Override
 	public void onUpdate()
 	{
+		LocalPlayer player = MC.player;
+		tickFood(player.getFoodData());
+		ItemStack spear = player.getInventory().getItem(spearSlot);
+		confirmDamage(spear);
+		
 		if(waitTicks > 0)
 		{
 			waitTicks--;
 			return;
 		}
 		
-		LocalPlayer player = MC.player;
-		FoodData food = player.getFoodData();
-		predictedFood = Math.min(predictedFood, food.getFoodLevel());
-		predictedSaturation =
-			Math.min(predictedSaturation, food.getSaturationLevel());
-		
-		ItemStack spear = player.getInventory().getItem(spearSlot);
 		PiercingWeapon weapon = spear.get(DataComponents.PIERCING_WEAPON);
-		if(!canLunge(player, spear, weapon))
+		int count = getLungeCount(player, spear, weapon);
+		if(count <= 0)
 		{
 			setEnabled(false);
 			return;
@@ -160,47 +194,95 @@ public final class FastLungeHack extends Hack implements UpdateListener
 		// vanilla sends the spear slot right before the stab
 		// (MultiPlayerGameMode.ensureHasSentCarriedItem)
 		player.getInventory().setSelectedSlot(spearSlot);
-		MC.gameMode.piercingAttack(weapon);
+		for(int i = 0; i < count; i++)
+			MC.gameMode.piercingAttack(weapon);
 		player.swing(InteractionHand.MAIN_HAND);
 		
 		// sent at the start of the next tick, before the movement packet
 		player.getInventory().setSelectedSlot(restSlot);
 		
-		lunges++;
-		useFood(lungeLevel);
+		lunges += count;
+		unconfirmedDamage[tick] = count;
+		useFood(count);
 		waitTicks = interval.getValueI() - 1;
 	}
 	
-	private boolean canLunge(LocalPlayer player, ItemStack spear,
+	/**
+	 * Returns how many times FastLunge can lunge right now, or 0 if it can't
+	 * lunge anymore.
+	 */
+	private int getLungeCount(LocalPlayer player, ItemStack spear,
 		PiercingWeapon weapon)
 	{
 		if(weapon == null || getLungeLevel(spear) <= 0)
-			return false;
-		
-		// don't break the spear
-		if(spear.isDamageableItem()
-			&& spear.getMaxDamage() - spear.getDamageValue() <= 1)
-			return false;
-		
-		int max = maxLunges.getValueI();
-		if(max > 0 && lunges >= max)
-			return false;
+			return 0;
 		
 		// requirements of the Lunge enchantment
 		if(player.isPassenger() || player.isFallFlying() || player.isInWater())
-			return false;
+			return 0;
 		
-		return player.getAbilities().instabuild || predictedFood >= MIN_FOOD;
+		if(!player.getAbilities().instabuild && predictedFood < MIN_FOOD)
+			return 0;
+		
+		int count = burst.getValueI();
+		
+		int max = maxLunges.getValueI();
+		if(max > 0)
+			count = Math.min(count, max - lunges);
+		
+		// don't break the spear
+		if(spear.isDamageableItem())
+		{
+			int durability = spear.getMaxDamage() - spear.getDamageValue()
+				- Arrays.stream(unconfirmedDamage).sum();
+			count = Math.min(count, durability - 1);
+		}
+		
+		return count;
 	}
 	
-	private void useFood(int points)
+	private void confirmDamage(ItemStack spear)
+	{
+		tick = (tick + 1) % DAMAGE_SYNC_TICKS;
+		unconfirmedDamage[tick] = 0;
+		
+		int confirmed = spear.getDamageValue() - lastDamageValue;
+		lastDamageValue = spear.getDamageValue();
+		
+		// oldest lunges first
+		for(int i = 1; i < DAMAGE_SYNC_TICKS && confirmed > 0; i++)
+		{
+			int j = (tick + i) % DAMAGE_SYNC_TICKS;
+			int amount = Math.min(confirmed, unconfirmedDamage[j]);
+			unconfirmedDamage[j] -= amount;
+			confirmed -= amount;
+		}
+	}
+	
+	private void useFood(int count)
 	{
 		if(MC.player.getAbilities().instabuild)
 			return;
 		
-		float fromSaturation = Math.min(predictedSaturation, points);
-		predictedSaturation -= fromSaturation;
-		predictedFood -= Math.round(points - fromSaturation);
+		predictedExhaustion =
+			Math.min(predictedExhaustion + 4 * lungeLevel * count, 40);
+	}
+	
+	// like FoodData.tick()
+	private void tickFood(FoodData food)
+	{
+		if(predictedExhaustion > 4)
+		{
+			predictedExhaustion -= 4;
+			if(predictedSaturation > 0)
+				predictedSaturation = Math.max(predictedSaturation - 1, 0);
+			else
+				predictedFood--;
+		}
+		
+		predictedFood = Math.min(predictedFood, food.getFoodLevel());
+		predictedSaturation =
+			Math.min(predictedSaturation, food.getSaturationLevel());
 	}
 	
 	private int findSpear(LocalPlayer player)
@@ -261,9 +343,12 @@ public final class FastLungeHack extends Hack implements UpdateListener
 				Attributes.ATTACK_SPEED, base, EquipmentSlot.MAINHAND);
 		if(attackSpeed <= 0)
 			return false;
-		
-		// the cooldown ticks the server has counted by the next stab
-		int ticks = interval.getValueI() - 1 + SERVER_LENIENCY;
+			
+		// the cooldown ticks the server has counted by the next stab, which
+		// is none for the stabs after the first one in a burst
+		int ticks = SERVER_LENIENCY;
+		if(burst.getValueI() == 1)
+			ticks += interval.getValueI() - 1;
 		double delay = 20 / attackSpeed;
 		return ticks / delay >= 1;
 	}
