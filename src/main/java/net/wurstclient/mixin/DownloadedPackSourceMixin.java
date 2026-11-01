@@ -55,5 +55,6 @@ public abstract class DownloadedPackSourceMixin implements AutoCloseable
 	private void onCleanupAfterDisconnect(CallbackInfo ci)
 	{
 		WurstClient.INSTANCE.getOtfs().packsBypassOtf.forgetBypassedPacks();
+		WurstClient.INSTANCE.getOtfs().noModDetectionOtf.onDisconnect();
 	}
 }

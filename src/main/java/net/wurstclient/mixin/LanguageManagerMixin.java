@@ -39,5 +39,6 @@ public abstract class LanguageManagerMixin
 		CallbackInfo ci)
 	{
 		WurstClient.INSTANCE.getOtfs().packsBypassOtf.onLanguageReload();
+		WurstClient.INSTANCE.getOtfs().noModDetectionOtf.onLanguageReload();
 	}
 }

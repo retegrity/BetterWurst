@@ -38,6 +38,7 @@
     "sodium": "<0.9.1-beta.3"
   },
   "breaks": {
+    "exploitpreventer": "*",
     "wi_zoom": "*",
     "wi-zoom": "*",
     "vulkanmod": "*"
