@@ -296,6 +296,7 @@
   "description.wurst.hack.nukerlegit": "Slower Nuker that's much harder for anti-cheat plugins to detect.",
   "description.wurst.hack.openwateresp": "Shows whether or not you are fishing in \"open water\" and draws a box around the area used for the open water calculation.",
   "description.wurst.hack.overlay": "Renders the Nuker animation whenever you mine a block.",
+  "description.wurst.hack.packetlogger": "Writes the packets that you send and receive to the game log (latest.log), with all of their fields. Useful for finding out how a server detects something.\n\nStays enabled when you join another server, so you can turn it on in singleplayer and then join.",
   "description.wurst.hack.panic": "Instantly turns off all enabled hacks.\nBe careful with this one!",
   "description.wurst.hack.parkour": "Makes you jump automatically when reaching the edge of a block.\nUseful for parkours and jump'n'runs.",
   "description.wurst.hack.playeresp": "Highlights nearby players, including mannequins.\nESP boxes of friends will appear in blue.",
