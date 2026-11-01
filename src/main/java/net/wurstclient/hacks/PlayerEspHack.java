@@ -59,10 +59,6 @@ public final class PlayerEspHack extends Hack implements UpdateListener,
 		new SliderSetting("Opacity", "How opaque the filled boxes should be.",
 			0.25, 0.05, 1, 0.01, ValueDisplay.PERCENTAGE);
 	
-	private final SliderSetting lineWidth =
-		new SliderSetting("Line width", "How thick the tracer lines should be.",
-			2, 1, 10, 0.5, ValueDisplay.DECIMAL);
-	
 	private final EntityFilterList entityFilters =
 		new EntityFilterList(FilterCreativeSetting.genericVision(false),
 			FilterSleepingSetting.genericVision(false),
@@ -78,7 +74,6 @@ public final class PlayerEspHack extends Hack implements UpdateListener,
 		addSetting(boxSize);
 		addSetting(coloredBoxes);
 		addSetting(opacity);
-		addSetting(lineWidth);
 		entityFilters.forEach(this::addSetting);
 	}
 	
@@ -160,8 +155,7 @@ public final class PlayerEspHack extends Hack implements UpdateListener,
 				ends.add(new ColoredPoint(point, getColor(e)));
 			}
 			
-			RenderUtils.drawTracers(matrixStack, partialTicks, ends, false,
-				lineWidth.getValueF());
+			RenderUtils.drawTracers(matrixStack, partialTicks, ends, false);
 		}
 	}
 	
