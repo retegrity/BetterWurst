@@ -181,9 +181,13 @@ public final class HackListHUD implements UpdateListener
 			Line line = lines.get(i);
 			int alpha = (int)(255 * line.opacity()) << 24;
 			int posX = x1[i] + 1;
-			context.text(tr, line.text(), posX + 1, y[i] + 2,
-				0x04000000 | alpha, false);
-			context.guiRenderState.up();
+			if(otf.isShadow())
+			{
+				context.text(tr, line.text(), posX + 1, y[i] + 2,
+					0x04000000 | alpha, false);
+				context.guiRenderState.up();
+			}
+			
 			context.text(tr, line.text(), posX, y[i] + 1, colors[i] | alpha,
 				false);
 		}
