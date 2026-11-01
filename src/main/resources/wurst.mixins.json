@@ -18,6 +18,7 @@
     "CreativeModeInventoryScreenMixin",
     "DirectJoinServerScreenMixin",
     "DisconnectedScreenMixin",
+    "DownloadedPackSourceMixin",
     "DownloadQueueMixin",
     "GameRendererMixin",
     "GuiMixin",

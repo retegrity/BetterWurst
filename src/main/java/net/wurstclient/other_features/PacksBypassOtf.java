@@ -7,15 +7,20 @@
  */
 package net.wurstclient.other_features;
 
+import java.net.URL;
+import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.ServerData.ServerPackStatus;
-import net.minecraft.network.Connection;
+import net.minecraft.client.resources.server.DownloadedPackSource;
+import net.minecraft.client.resources.server.PackReloadConfig;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
-import net.minecraft.network.protocol.common.ServerboundResourcePackPacket.Action;
 import net.wurstclient.DontBlock;
 import net.wurstclient.SearchTags;
 import net.wurstclient.mixinterface.IServerData;
@@ -26,6 +31,8 @@ import net.wurstclient.other_feature.OtherFeature;
 @DontBlock
 public final class PacksBypassOtf extends OtherFeature
 {
+	private final HashSet<UUID> bypassedPacks = new HashSet<>();
+	
 	public PacksBypassOtf()
 	{
 		super("PacksBypass", "description.wurst.other_feature.packsbypass");
@@ -45,17 +52,40 @@ public final class PacksBypassOtf extends OtherFeature
 	}
 	
 	/**
-	 * Tells the server that the pack was accepted, downloaded and loaded,
-	 * which is what vanilla sends when it applies a pack.
+	 * Lets vanilla accept and download the pack (or take it from the cache)
+	 * like normal, so that the server sees the same responses and download as
+	 * from a real client. Only the resource reload that would apply the pack is
+	 * skipped later, see {@link #fakeReload(PackReloadConfig.Callbacks)}.
 	 */
-	public void fakeLoadPack(Connection connection, UUID packId)
+	public void pushPack(UUID id, URL url, String hash)
 	{
-		connection
-			.send(new ServerboundResourcePackPacket(packId, Action.ACCEPTED));
-		connection
-			.send(new ServerboundResourcePackPacket(packId, Action.DOWNLOADED));
-		connection.send(new ServerboundResourcePackPacket(packId,
-			Action.SUCCESSFULLY_LOADED));
+		bypassedPacks.add(id);
+		DownloadedPackSource packSource = MC.getDownloadedPackSource();
+		packSource.allowServerPacks();
+		packSource.pushPack(id, url, hash);
+	}
+	
+	public boolean isBypassed(List<PackReloadConfig.IdAndPath> packs)
+	{
+		return packs.stream()
+			.allMatch(pack -> bypassedPacks.contains(pack.id()));
+	}
+	
+	/**
+	 * Reports the packs as applied without loading them, after about as long
+	 * as a real resource reload would take.
+	 */
+	public void fakeReload(PackReloadConfig.Callbacks callbacks)
+	{
+		long delay = callbacks.packsToLoad().isEmpty() ? 0
+			: ThreadLocalRandom.current().nextLong(1500, 3000);
+		CompletableFuture.runAsync(callbacks::onSuccess, CompletableFuture
+			.delayedExecutor(delay, TimeUnit.MILLISECONDS, MC));
+	}
+	
+	public void forgetBypassedPacks()
+	{
+		bypassedPacks.clear();
 	}
 	
 	public enum PackMode
