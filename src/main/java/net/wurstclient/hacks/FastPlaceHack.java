@@ -7,6 +7,8 @@
  */
 package net.wurstclient.hacks;
 
+import java.util.Random;
+
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.wurstclient.Category;
@@ -40,6 +42,15 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 		0, 0, VANILLA_DELAY - 2, 1,
 		ValueDisplay.INTEGER.withSuffix(" ticks").withLabel(1, "1 tick"));
 	
+	private final CheckboxSetting randomize = new CheckboxSetting(
+		"Randomize delay",
+		"Randomly waits an extra tick before some placements or item uses, so"
+			+ " the gaps between them vary like when clicking quickly, instead"
+			+ " of always being exactly the same.\n\n"
+			+ "The server can't see whether you are holding right click, but"
+			+ " some anti-cheats might notice gaps that never change.",
+		false);
+	
 	private final SliderSetting startDelay = new SliderSetting("Start delay",
 		"How long you have to hold right click before FastPlace starts placing"
 			+ " blocks or using items faster. Until then, it's the vanilla"
@@ -49,6 +60,7 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 		0, 0, 5, 1,
 		ValueDisplay.INTEGER.withSuffix(" ticks").withLabel(1, "1 tick"));
 	
+	private final Random random = new Random();
 	private int heldTicks;
 	
 	public FastPlaceHack()
@@ -58,6 +70,7 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 		addSetting(fastPlacement);
 		addSetting(fastItemUse);
 		addSetting(delay);
+		addSetting(randomize);
 		addSetting(startDelay);
 	}
 	
@@ -96,8 +109,14 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 		// which happens before this, so a value of N means waiting N - 1
 		// ticks.
 		int maxDelay = delay.getValueI() + 1;
-		if(MC.rightClickDelay > maxDelay)
-			MC.rightClickDelay = maxDelay;
+		if(MC.rightClickDelay <= maxDelay)
+			return;
+		
+		// only reached right after a use, so every use gets one roll
+		if(randomize.isChecked() && random.nextBoolean())
+			maxDelay++;
+		
+		MC.rightClickDelay = Math.min(MC.rightClickDelay, maxDelay);
 	}
 	
 	/**
