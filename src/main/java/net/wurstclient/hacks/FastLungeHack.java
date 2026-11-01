@@ -194,9 +194,13 @@ public final class FastLungeHack extends Hack implements UpdateListener
 		// vanilla sends the spear slot right before the stab
 		// (MultiPlayerGameMode.ensureHasSentCarriedItem)
 		player.getInventory().setSelectedSlot(spearSlot);
+		// swing after every stab, since Grim's PacketOrderB flags stabs
+		// without a swing in between
 		for(int i = 0; i < count; i++)
+		{
 			MC.gameMode.piercingAttack(weapon);
-		player.swing(InteractionHand.MAIN_HAND);
+			player.swing(InteractionHand.MAIN_HAND);
+		}
 		
 		// sent at the start of the next tick, before the movement packet
 		player.getInventory().setSelectedSlot(restSlot);
