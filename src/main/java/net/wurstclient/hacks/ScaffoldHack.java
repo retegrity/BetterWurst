@@ -90,14 +90,6 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 				+ " turning back to your real rotation (at the return speed).",
 			6, 1, 20, 1, ValueDisplay.INTEGER.withSuffix(" ticks"));
 	
-	private final CheckboxSetting movementCorrection =
-		new CheckboxSetting("Movement correction",
-			"Moves you in the direction of your server-side rotation while"
-				+ " Scaffold is aiming, the way the server expects it. You"
-				+ " still walk where you want to go. Needed for anti-cheats"
-				+ " like Grim.",
-			true);
-	
 	private final EnumSetting<Sprint> sprint = new EnumSetting<>("Sprint",
 		"§lLegit§r leaves sprinting to the game. With movement"
 			+ " correction, you can't sprint while your server-side rotation"
@@ -176,7 +168,6 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 		addSetting(returnSpeed);
 		addSetting(aim);
 		addSetting(rotationHold);
-		addSetting(movementCorrection);
 		addSetting(sprint);
 		addSetting(tower);
 		addSetting(keepY);
@@ -515,8 +506,7 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 				: returnSpeed.getValueF();
 		
 		WURST.getRotationFaker().faceVectorSmoothly(aimAt,
-			turnSpeed.getValueF(), getHoldTicks(),
-			movementCorrection.isChecked(), release);
+			turnSpeed.getValueF(), getHoldTicks(), release);
 	}
 	
 	private int getHoldTicks()

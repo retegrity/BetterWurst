@@ -38,7 +38,6 @@ public final class RotationFaker
 	private float managedYaw;
 	private float managedPitch;
 	private int managedTicksLeft;
-	private boolean movementCorrection;
 	
 	// when > 0, an expired managed rotation turns back to the camera rotation
 	// at this speed (degrees per tick) instead of snapping back
@@ -204,28 +203,22 @@ public final class RotationFaker
 	 * rotations do with both turn speeds at 180°: the rotation goes straight
 	 * to the target and is corrected for the mouse sensitivity grid. It stays
 	 * active for the given number of ticks after the last call.
-	 *
-	 * @param movementCorrection
-	 *            whether the player's movement should be calculated from the
-	 *            silent rotation instead of the camera rotation
 	 */
-	public void faceVectorSilently(Vec3 vec, int ticksUntilReset,
-		boolean movementCorrection)
+	public void faceVectorSilently(Vec3 vec, int ticksUntilReset)
 	{
-		turnTowards(vec, 180, ticksUntilReset, movementCorrection, 0);
+		turnTowards(vec, 180, ticksUntilReset, 0);
 	}
 	
 	/**
-	 * Like {@link #faceVectorSilently(Vec3, int, boolean)}, but turns by at
+	 * Like {@link #faceVectorSilently(Vec3, int)}, but turns by at
 	 * most the given number of degrees per tick. Once the rotation expires,
 	 * it turns back to the camera rotation at the given release speed instead
 	 * of snapping back.
 	 */
 	public void faceVectorSmoothly(Vec3 vec, float maxTurn, int ticksUntilReset,
-		boolean movementCorrection, float releaseSpeed)
+		float releaseSpeed)
 	{
-		turnTowards(vec, maxTurn, ticksUntilReset, movementCorrection,
-			releaseSpeed);
+		turnTowards(vec, maxTurn, ticksUntilReset, releaseSpeed);
 	}
 	
 	/**
@@ -242,7 +235,7 @@ public final class RotationFaker
 	 *            how much the turn speed can change per tick, at most 20
 	 */
 	public void faceVectorHumanly(Vec3 vec, float maxSpeed, float acceleration,
-		int ticksUntilReset, boolean movementCorrection)
+		int ticksUntilReset)
 	{
 		LocalPlayer player = WurstClient.MC.player;
 		Rotation needed = RotationUtils.getNeededRotations(vec);
@@ -258,7 +251,6 @@ public final class RotationFaker
 		lastTurnYawDelta = managedYaw - fromYaw;
 		lastTurnPitchDelta = managedPitch - fromPitch;
 		managedTicksLeft = ticksUntilReset;
-		this.movementCorrection = movementCorrection;
 		releaseSpeed = 0;
 		releasing = false;
 		human = true;
@@ -305,7 +297,7 @@ public final class RotationFaker
 	}
 	
 	private void turnTowards(Vec3 vec, float maxTurn, int ticksUntilReset,
-		boolean movementCorrection, float releaseSpeed)
+		float releaseSpeed)
 	{
 		human = false;
 		LocalPlayer player = WurstClient.MC.player;
@@ -327,7 +319,6 @@ public final class RotationFaker
 		lastTurnYawDelta = managedYaw - fromYaw;
 		lastTurnPitchDelta = managedPitch - fromPitch;
 		managedTicksLeft = ticksUntilReset;
-		this.movementCorrection = movementCorrection;
 		this.releaseSpeed = releaseSpeed;
 		releasing = false;
 		managed = true;
@@ -397,7 +388,6 @@ public final class RotationFaker
 		managed = false;
 		human = false;
 		releasing = false;
-		movementCorrection = false;
 	}
 	
 	/**
@@ -413,9 +403,23 @@ public final class RotationFaker
 		return Math.max(gcd, 1e-4F);
 	}
 	
+	/**
+	 * Whether MovementFix should calculate this tick's movement from the
+	 * server-side rotation instead of the camera rotation.
+	 */
 	public boolean isMovementCorrectionActive()
 	{
-		return managed && movementCorrection;
+		return (fakeRotation || managed)
+			&& WurstClient.INSTANCE.getHax().movementFixHack.isEnabled();
+	}
+	
+	/**
+	 * The yaw that this tick's movement packet will send, which is the one
+	 * that the server calculates your movement from.
+	 */
+	public float getMovementYaw()
+	{
+		return fakeRotation ? serverYaw : managedYaw;
 	}
 	
 	/**
@@ -434,20 +438,25 @@ public final class RotationFaker
 		return lastTurnPitchDelta;
 	}
 	
-	public float getManagedYaw()
-	{
-		return managedYaw;
-	}
-	
 	public void faceVectorPacket(Vec3 vec)
 	{
 		Rotation needed = RotationUtils.getNeededRotations(vec);
 		LocalPlayer player = WurstClient.MC.player;
 		
+		faceRotationPacket(
+			RotationUtils.limitAngleChange(player.getYRot(), needed.yaw()),
+			needed.pitch());
+	}
+	
+	/**
+	 * Sends the given rotation in this tick's movement packet instead of the
+	 * camera rotation, without turning the camera.
+	 */
+	public void faceRotationPacket(float yaw, float pitch)
+	{
 		fakeRotation = true;
-		serverYaw =
-			RotationUtils.limitAngleChange(player.getYRot(), needed.yaw());
-		serverPitch = needed.pitch();
+		serverYaw = yaw;
+		serverPitch = pitch;
 	}
 	
 	public void faceVectorClient(Vec3 vec)

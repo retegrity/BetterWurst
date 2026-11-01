@@ -62,13 +62,6 @@ public final class ClutchHack extends Hack implements UpdateListener
 			+ " once Clutch is done.",
 		30, 10, 180, 1, ValueDisplay.DEGREES.withSuffix("/tick"));
 	
-	private final CheckboxSetting movementCorrection =
-		new CheckboxSetting("Movement correction",
-			"Moves you in the direction of your server-side rotation while"
-				+ " clutching, the way the server expects it. Needed for"
-				+ " anti-cheats like Grim.",
-			true);
-	
 	private final CheckboxSetting switchBack =
 		new CheckboxSetting("Switch back",
 			"Switches back to the item you were holding once Clutch is done.",
@@ -103,7 +96,6 @@ public final class ClutchHack extends Hack implements UpdateListener
 		addSetting(prediction);
 		addSetting(turnSpeed);
 		addSetting(returnSpeed);
-		addSetting(movementCorrection);
 		addSetting(switchBack);
 	}
 	
@@ -205,8 +197,7 @@ public final class ClutchHack extends Hack implements UpdateListener
 		WURST.getRotationFaker().faceVectorSmoothly(
 			aimPoint.get(placement.neighbor(), placement.side(),
 				placement.hitVec()),
-			turnSpeed.getValueF(), 2, movementCorrection.isChecked(),
-			returnSpeed.getValueF());
+			turnSpeed.getValueF(), 2, returnSpeed.getValueF());
 		rotationGuard.onTurn(WURST.getRotationFaker().getLastTurnYawDelta(),
 			WURST.getRotationFaker().getLastTurnPitchDelta());
 		
