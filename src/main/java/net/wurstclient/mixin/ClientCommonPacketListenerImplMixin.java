@@ -7,6 +7,8 @@
  */
 package net.wurstclient.mixin;
 
+import java.net.URL;
+
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 
 import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
 import net.minecraft.client.multiplayer.ServerData;
@@ -34,15 +37,12 @@ public abstract class ClientCommonPacketListenerImplMixin
 {
 	@Shadow
 	@Final
-	protected Connection connection;
-	
-	@Shadow
-	@Final
 	protected ServerData serverData;
 	
 	/**
 	 * PacksBypass's "Bypass" mode. Runs after vanilla has checked the pack's
-	 * URL, so that an invalid URL is still answered like vanilla would.
+	 * URL, so that an invalid URL is still answered like vanilla would, and
+	 * skips the prompt and the "Disabled" check.
 	 */
 	@Inject(
 		method = "handleResourcePackPush(Lnet/minecraft/network/protocol/common/ClientboundResourcePackPushPacket;)V",
@@ -50,14 +50,15 @@ public abstract class ClientCommonPacketListenerImplMixin
 			target = "Lnet/minecraft/network/protocol/common/ClientboundResourcePackPushPacket;hash()Ljava/lang/String;"),
 		cancellable = true)
 	private void onHandleResourcePackPush(
-		ClientboundResourcePackPushPacket packet, CallbackInfo ci)
+		ClientboundResourcePackPushPacket packet, CallbackInfo ci,
+		@Local URL url)
 	{
 		PacksBypassOtf packsBypass =
 			WurstClient.INSTANCE.getOtfs().packsBypassOtf;
 		if(!packsBypass.isBypassing(serverData))
 			return;
 		
-		packsBypass.fakeLoadPack(connection, packet.id());
+		packsBypass.pushPack(packet.id(), url, packet.hash());
 		ci.cancel();
 	}
 	
