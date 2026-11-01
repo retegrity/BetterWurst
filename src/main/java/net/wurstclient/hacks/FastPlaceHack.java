@@ -7,10 +7,13 @@
  */
 package net.wurstclient.hacks;
 
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
+import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.settings.SliderSetting.ValueDisplay;
 
@@ -21,8 +24,17 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 	// vanilla uses an item every 4th tick
 	private static final int VANILLA_DELAY = 4;
 	
+	private final CheckboxSetting fastPlacement = new CheckboxSetting(
+		"Fast placement speed", "Places blocks faster.", true);
+	
+	private final CheckboxSetting fastItemUse = new CheckboxSetting(
+		"Fast item use speed",
+		"Uses other items faster, like throwing XP bottles and splash potions"
+			+ " or using fireworks.",
+		true);
+	
 	private final SliderSetting delay = new SliderSetting("Delay",
-		"How many ticks to wait between placing blocks.\n\n"
+		"How many ticks to wait between placing blocks or using items.\n\n"
 			+ "0 places a block every tick. Vanilla waits 3 ticks (one block"
 			+ " every 4 ticks).",
 		0, 0, VANILLA_DELAY - 2, 1,
@@ -30,7 +42,8 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 	
 	private final SliderSetting startDelay = new SliderSetting("Start delay",
 		"How long you have to hold right click before FastPlace starts placing"
-			+ " faster. Until then, blocks are placed at the vanilla speed.\n\n"
+			+ " blocks or using items faster. Until then, it's the vanilla"
+			+ " speed.\n\n"
 			+ "Prevents low delays from placing 2 blocks when you only wanted"
 			+ " to place one.",
 		0, 0, 5, 1,
@@ -42,6 +55,8 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 	{
 		super("FastPlace");
 		setCategory(Category.BLOCKS);
+		addSetting(fastPlacement);
+		addSetting(fastItemUse);
 		addSetting(delay);
 		addSetting(startDelay);
 	}
@@ -71,6 +86,11 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 		heldTicks++;
 		if(heldTicks <= startDelay.getValueI())
 			return;
+		
+		CheckboxSetting setting =
+			isPlacingBlock() ? fastPlacement : fastItemUse;
+		if(!setting.isChecked())
+			return;
 			
 		// The game counts rightClickDelay down before it checks the use key,
 		// which happens before this, so a value of N means waiting N - 1
@@ -78,5 +98,18 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 		int maxDelay = delay.getValueI() + 1;
 		if(MC.rightClickDelay > maxDelay)
 			MC.rightClickDelay = maxDelay;
+	}
+	
+	/**
+	 * Whether the next right click places a block, judging by the item that
+	 * vanilla tries first (main hand, or off hand if the main hand is empty).
+	 */
+	private boolean isPlacingBlock()
+	{
+		ItemStack stack = MC.player.getMainHandItem();
+		if(stack.isEmpty())
+			stack = MC.player.getOffhandItem();
+		
+		return stack.getItem() instanceof BlockItem;
 	}
 }
