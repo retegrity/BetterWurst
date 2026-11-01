@@ -24,7 +24,7 @@ import net.wurstclient.WurstClient;
 public abstract class KeyboardInputMixin
 {
 	/**
-	 * Silent movement correction: when moving relative to the silent rotation
+	 * MovementFix: when moving relative to the server-side rotation
 	 * instead of the camera, the pressed keys are converted so that the player
 	 * still walks in the direction they intended (rounded to 8 directions).
 	 */
@@ -43,7 +43,7 @@ public abstract class KeyboardInputMixin
 		float sideways = (original.left() ? 1 : 0) - (original.right() ? 1 : 0);
 		
 		float deltaYaw =
-			(player.getYRot() - faker.getManagedYaw()) * Mth.DEG_TO_RAD;
+			(player.getYRot() - faker.getMovementYaw()) * Mth.DEG_TO_RAD;
 		float sin = Mth.sin(deltaYaw);
 		float cos = Mth.cos(deltaYaw);
 		

@@ -304,8 +304,7 @@ public final class TreeBotHack extends Hack
 	private void breakBlockSmoothly(BlockPos pos, BlockBreakingParams params)
 	{
 		RotationFaker rotationFaker = WURST.getRotationFaker();
-		rotationFaker.faceVectorHumanly(getAimPoint(pos, params), 30, 12, 5,
-			true);
+		rotationFaker.faceVectorHumanly(getAimPoint(pos, params), 30, 12, 5);
 		
 		BlockHitResult hit =
 			raycast(rotationFaker.getSentYaw(), rotationFaker.getSentPitch());

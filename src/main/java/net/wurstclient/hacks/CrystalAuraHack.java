@@ -95,13 +95,6 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 			+ " once CrystalAura is done.",
 		30, 10, 180, 1, ValueDisplay.DEGREES.withSuffix("/tick"));
 	
-	private final CheckboxSetting movementCorrection =
-		new CheckboxSetting("Movement correction",
-			"Moves you in the direction of your server-side rotation while"
-				+ " CrystalAura is aiming, the way the server expects it."
-				+ " Needed for anti-cheats like Grim.",
-			true);
-	
 	private final CheckboxSetting switchBack = new CheckboxSetting(
 		"Switch back",
 		"Switches back to the item you were holding once CrystalAura is done.",
@@ -149,7 +142,6 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 		addSetting(actionDelay);
 		addSetting(turnSpeed);
 		addSetting(returnSpeed);
-		addSetting(movementCorrection);
 		addSetting(switchBack);
 		addSetting(swingHand);
 		
@@ -212,8 +204,7 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 		}
 		
 		WURST.getRotationFaker().faceVectorSmoothly(action.aim(),
-			turnSpeed.getValueF(), 2, movementCorrection.isChecked(),
-			returnSpeed.getValueF());
+			turnSpeed.getValueF(), 2, returnSpeed.getValueF());
 		rotationGuard.onTurn(WURST.getRotationFaker().getLastTurnYawDelta(),
 			WURST.getRotationFaker().getLastTurnPitchDelta());
 		

@@ -21,8 +21,8 @@ import net.wurstclient.WurstClient;
 public abstract class EntityMixin
 {
 	/**
-	 * Movement correction: uses the silent rotation's yaw instead of the
-	 * camera yaw when applying movement input.
+	 * MovementFix: uses the server-side rotation's yaw instead of the camera
+	 * yaw when applying movement input.
 	 */
 	@ModifyExpressionValue(
 		method = "moveRelative(FLnet/minecraft/world/phys/Vec3;)V",
@@ -34,7 +34,7 @@ public abstract class EntityMixin
 			return original;
 		
 		RotationFaker faker = WurstClient.INSTANCE.getRotationFaker();
-		return faker.isMovementCorrectionActive() ? faker.getManagedYaw()
+		return faker.isMovementCorrectionActive() ? faker.getMovementYaw()
 			: original;
 	}
 }

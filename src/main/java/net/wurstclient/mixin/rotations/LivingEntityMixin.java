@@ -21,8 +21,7 @@ import net.wurstclient.WurstClient;
 public abstract class LivingEntityMixin
 {
 	/**
-	 * Movement correction: sprint-jumps in the direction of the silent
-	 * rotation.
+	 * MovementFix: sprint-jumps in the direction of the server-side rotation.
 	 */
 	@ModifyExpressionValue(method = "jumpFromGround()V",
 		at = @At(value = "INVOKE",
@@ -33,7 +32,7 @@ public abstract class LivingEntityMixin
 			return original;
 		
 		RotationFaker faker = WurstClient.INSTANCE.getRotationFaker();
-		return faker.isMovementCorrectionActive() ? faker.getManagedYaw()
+		return faker.isMovementCorrectionActive() ? faker.getMovementYaw()
 			: original;
 	}
 }
