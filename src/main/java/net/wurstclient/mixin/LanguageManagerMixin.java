@@ -31,4 +31,13 @@ public abstract class LanguageManagerMixin
 		// early to call ResourceManager.registerReloader()
 		WurstClient.INSTANCE.getTranslator().onResourceManagerReload(manager);
 	}
+	
+	@Inject(
+		method = "onResourceManagerReload(Lnet/minecraft/server/packs/resources/ResourceManager;)V",
+		at = @At("TAIL"))
+	private void afterOnResourceManagerReload(ResourceManager manager,
+		CallbackInfo ci)
+	{
+		WurstClient.INSTANCE.getOtfs().packsBypassOtf.onLanguageReload();
+	}
 }
