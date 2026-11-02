@@ -8,6 +8,7 @@
 package net.wurstclient.hacks;
 
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.network.protocol.common.ServerboundClientInformationPacket;
 import net.minecraft.network.protocol.common.ServerboundKeepAlivePacket;
 import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
 import net.minecraft.network.protocol.game.ServerboundAttackPacket;
@@ -50,7 +51,9 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 			+ "\u00a7lCookie\u00a7r mode sends an answer to a question the"
 			+ " server never asked, which it kicks you for.\n"
 			+ "\u00a7lChatAck\u00a7r mode confirms chat messages that were"
-			+ " never sent, which fails the server's chat validation.",
+			+ " never sent, which fails the server's chat validation.\n"
+			+ "\u00a7lPacketSpam\u00a7r mode sends a ton of packets at once."
+			+ " Only works on servers with a packet rate limit.",
 		Mode.values(), Mode.QUIT);
 	
 	private final CheckboxSetting chatAckMessage = new CheckboxSetting(
@@ -62,6 +65,11 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 			+ "On servers that don't check chat messages, the dot is posted in"
 			+ " chat.",
 		false);
+	
+	private final SliderSetting packets =
+		new SliderSetting("Packets (PacketSpam)",
+			"How many packets \u00a7lPacketSpam\u00a7r mode sends.", 5000, 1000,
+			10000, 500, ValueDisplay.INTEGER);
 	
 	private final CheckboxSetting disableAutoReconnect = new CheckboxSetting(
 		"Disable AutoReconnect", "Automatically turns off AutoReconnect when"
@@ -82,6 +90,7 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 		addSetting(health);
 		addSetting(mode);
 		addSetting(chatAckMessage);
+		addSetting(packets);
 		addSetting(disableAutoReconnect);
 		addSetting(totems);
 	}
@@ -136,6 +145,20 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 			WURST.getHax().autoReconnectHack.setEnabled(false);
 	}
 	
+	// Paper's packet limiter allows 500 packets per second by default,
+	// averaged over 7 seconds, so a few thousand at once get you kicked.
+	// Re-sending your current client settings changes nothing on the server
+	// and, unlike movement packets, doesn't count towards timer checks.
+	private void spamPackets()
+	{
+		ServerboundClientInformationPacket packet =
+			new ServerboundClientInformationPacket(
+				MC.options.buildPlayerInformation());
+		
+		for(int i = 0; i < packets.getValueI(); i++)
+			MC.getConnection().send(packet);
+	}
+	
 	public static enum Mode
 	{
 		QUIT("Quit",
@@ -165,7 +188,10 @@ public final class AutoLeaveHack extends Hack implements UpdateListener
 		
 		// a negative number of newly seen messages is never valid
 		CHATACK("ChatAck",
-			() -> MC.getConnection().send(new ServerboundChatAckPacket(-1)));
+			() -> MC.getConnection().send(new ServerboundChatAckPacket(-1))),
+		
+		PACKETSPAM("PacketSpam",
+			() -> WURST.getHax().autoLeaveHack.spamPackets());
 		
 		private final String name;
 		private final Runnable leave;
