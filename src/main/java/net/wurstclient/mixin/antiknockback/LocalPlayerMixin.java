@@ -16,6 +16,7 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.WurstClient;
+import net.wurstclient.hack.HackList;
 
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerMixin extends AbstractClientPlayer
@@ -27,16 +28,21 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 	}
 	
 	/**
-	 * Applies AntiKnockback's strength settings to regular knockback for the
-	 * local player.
+	 * Applies AntiKnockback's settings to regular knockback for the local
+	 * player.
 	 */
 	@Override
 	public void lerpMotion(Vec3 vec)
 	{
-		Vec3 knockback = WurstClient.INSTANCE.getHax().antiKnockbackHack
-			.modifyKnockback(vec);
+		HackList hax = WurstClient.INSTANCE.getHax();
+		boolean fromHit =
+			hax.jumpResetHack.isHitKnockback((LocalPlayer)(Object)this);
+		if(hax.antiKnockbackHack.delayKnockback(vec, fromHit))
+			return;
+		
+		Vec3 knockback = hax.antiKnockbackHack.modifyKnockback(vec);
 		super.lerpMotion(knockback);
-		WurstClient.INSTANCE.getHax().jumpResetHack
-			.onVelocity((LocalPlayer)(Object)this, knockback);
+		if(fromHit)
+			hax.jumpResetHack.onKnockback(knockback);
 	}
 }
