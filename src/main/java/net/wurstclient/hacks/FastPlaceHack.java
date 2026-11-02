@@ -98,7 +98,9 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 		// The game counts rightClickDelay down before it checks the use key,
 		// which happens before this, so a value of N means waiting N - 1
 		// ticks.
-		int maxDelay = delay.getValueI() + 1;
+		// a typed-in negative delay would stop vanilla from ever counting
+		// down to 0 again
+		int maxDelay = Math.max(delay.getValueI(), 0) + 1;
 		if(MC.rightClickDelay <= maxDelay)
 			return;
 		
