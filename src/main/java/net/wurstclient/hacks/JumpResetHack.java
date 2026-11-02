@@ -64,12 +64,25 @@ public final class JumpResetHack extends Hack implements UpdateListener
 	 * Called when the server sets the player's velocity, before the tick in
 	 * which the player moves with it.
 	 */
-	public void onVelocity(LocalPlayer player, Vec3 velocity)
+	/**
+	 * Whether a velocity packet that arrives right now is knockback from
+	 * being hurt, which comes right after the damage (or one tick later if
+	 * the network split the two packets).
+	 */
+	public boolean isHitKnockback(LocalPlayer player)
 	{
-		// only knockback from being hurt, which comes right after the damage
-		// (or one tick later if the network split the two packets)
-		if(isEnabled() && player.hurtDuration > 0
-			&& player.hurtTime >= player.hurtDuration - 1)
+		return player.hurtDuration > 0
+			&& player.hurtTime >= player.hurtDuration - 1;
+	}
+	
+	/**
+	 * Called when knockback from being hurt is applied, which can be later
+	 * than {@link #isHitKnockback(LocalPlayer)} with AntiKnockback's Delay
+	 * mode.
+	 */
+	public void onKnockback(Vec3 velocity)
+	{
+		if(isEnabled())
 			knockback = velocity;
 	}
 	
