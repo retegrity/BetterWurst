@@ -14,7 +14,9 @@ import net.wurstclient.hack.Hack;
 /**
  * Only a toggle. The actual movement correction happens in RotationFaker and
  * the mixins in the rotations package, for every hack that sends a
- * server-side rotation through RotationFaker.
+ * server-side rotation through RotationFaker. Hacks that send extra rotation
+ * packets instead (ClickAura, MultiAura, TP-Aura, "Packet spam" face target)
+ * aren't covered.
  */
 @SearchTags({"movement fix", "MoveFix", "move fix", "movement correction",
 	"StrafeFix", "strafe fix"})
