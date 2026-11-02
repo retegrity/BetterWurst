@@ -80,6 +80,9 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 			ordinal = 0))
 	private void onTick(CallbackInfo ci)
 	{
+		WurstClient.INSTANCE.getHax().antiKnockbackHack
+			.releaseDelayedKnockback();
+		
 		try(TempRealInput _ = new TempRealInput())
 		{
 			EventManager.fire(UpdateEvent.INSTANCE);
