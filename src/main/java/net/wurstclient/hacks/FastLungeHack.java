@@ -33,26 +33,25 @@ import net.wurstclient.util.ItemUtils;
 	"SpearBoost", "spear boost"})
 public final class FastLungeHack extends Hack implements UpdateListener
 {
+	// 2 is the fastest that doesn't flag Grim's PacketOrderE (see below).
+	// Higher values miss fewer lunges on laggy connections.
 	private final SliderSetting interval = new SliderSetting("Interval",
-		"Ticks between lunges.\n\n"
-			+ "2 is the fastest that doesn't flag Grim's PacketOrderE. Higher"
-			+ " values miss fewer lunges on laggy connections.",
-		2, 2, 10, 1, ValueDisplay.INTEGER.withSuffix(" ticks"));
+		"Ticks between lunges. 2 is the fastest that doesn't flag Grim.", 2, 2,
+		10, 1, ValueDisplay.INTEGER.withSuffix(" ticks"));
 	
+	// Every lunge costs 1 durability. Hunger only builds up to 10 food points'
+	// worth at a time (FoodData), so big bursts use less food per lunge.
+	// Bursts need a rest item without an attack speed modifier, see
+	// isRestItem().
 	private final SliderSetting burst = new SliderSetting("Lunges per burst",
-		"How many times to lunge at once. The server adds up all lunges of the"
-			+ " same tick into one big boost.\n\n"
-			+ "Every lunge costs one durability. Hunger only builds up to 10 food"
-			+ " points' worth at a time, so big bursts use less food per lunge,"
-			+ " but your food keeps draining for a while afterwards.\n\n"
-			+ "Values above 1 need a free hotbar slot or an item without an"
-			+ " attack speed modifier.",
-		1, 1, 10, 1, ValueDisplay.INTEGER);
+		"How many times to lunge at once, for a bigger boost.", 1, 1, 10, 1,
+		ValueDisplay.INTEGER);
 	
+	// also turns off once it can't lunge anymore (not enough food, spear
+	// about to break, etc.)
 	private final SliderSetting maxLunges = new SliderSetting("Max lunges",
-		"FastLunge turns itself off after this many lunges, or once it can't"
-			+ " lunge anymore (not enough food, spear about to break, etc.).",
-		0, 0, 50, 1, ValueDisplay.INTEGER.withLabel(0, "unlimited"));
+		"Turns FastLunge off after this many lunges.", 0, 0, 50, 1,
+		ValueDisplay.INTEGER.withLabel(0, "unlimited"));
 	
 	// the server allows stabbing this many ticks early (cannotAttackWithItem)
 	private static final int SERVER_LENIENCY = 5;

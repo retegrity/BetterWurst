@@ -29,34 +29,24 @@ public final class FastPlaceHack extends Hack implements UpdateListener
 	private final CheckboxSetting fastPlacement = new CheckboxSetting(
 		"Fast placement speed", "Places blocks faster.", true);
 	
-	private final CheckboxSetting fastItemUse = new CheckboxSetting(
-		"Fast item use speed",
-		"Uses other items faster, like throwing XP bottles and splash potions"
-			+ " or using fireworks.",
-		true);
+	private final CheckboxSetting fastItemUse =
+		new CheckboxSetting("Fast item use speed",
+			"Uses items like XP bottles, potions and fireworks faster.", true);
 	
 	private final SliderSetting delay = new SliderSetting("Delay",
-		"How many ticks to wait between placing blocks or using items.\n\n"
-			+ "0 places a block every tick. Vanilla waits 3 ticks (one block"
-			+ " every 4 ticks).",
-		0, 0, VANILLA_DELAY - 2, 1,
+		"Ticks to wait between uses. Vanilla waits 3 ticks.", 0, 0,
+		VANILLA_DELAY - 2, 1,
 		ValueDisplay.INTEGER.withSuffix(" ticks").withLabel(1, "1 tick"));
 	
-	private final CheckboxSetting randomize = new CheckboxSetting(
-		"Randomize delay",
-		"Randomly waits an extra tick before some placements or item uses, so"
-			+ " the gaps between them vary like when clicking quickly, instead"
-			+ " of always being exactly the same.\n\n"
-			+ "The server can't see whether you are holding right click, but"
-			+ " some anti-cheats might notice gaps that never change.",
-		false);
+	// The server can't see whether you are holding right click, but some
+	// anti-cheats might notice gaps between uses that never change.
+	private final CheckboxSetting randomize =
+		new CheckboxSetting("Randomize delay", "Sometimes waits an extra tick,"
+			+ " so it looks more like clicking quickly.", false);
 	
 	private final SliderSetting startDelay = new SliderSetting("Start delay",
-		"How long you have to hold right click before FastPlace starts placing"
-			+ " blocks or using items faster. Until then, it's the vanilla"
-			+ " speed.\n\n"
-			+ "Prevents low delays from placing 2 blocks when you only wanted"
-			+ " to place one.",
+		"How long to hold right click before FastPlace kicks in. Prevents"
+			+ " placing 2 blocks by accident.",
 		0, 0, 5, 1,
 		ValueDisplay.INTEGER.withSuffix(" ticks").withLabel(1, "1 tick"));
 	
