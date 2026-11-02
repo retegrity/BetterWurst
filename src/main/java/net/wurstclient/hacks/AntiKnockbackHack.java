@@ -57,6 +57,7 @@ public final class AntiKnockbackHack extends Hack
 	private final ArrayDeque<Delayed> queue = new ArrayDeque<>();
 	private ClientPacketListener queueConnection;
 	private int ticks;
+	private int lastTeleportTick = -1;
 	
 	public AntiKnockbackHack()
 	{
@@ -84,7 +85,7 @@ public final class AntiKnockbackHack extends Hack
 	protected void onDisable()
 	{
 		EVENTS.remove(PacketOutputListener.class, this);
-		releaseDelayedKnockback();
+		release(true);
 	}
 	
 	public Vec3 modifyKnockback(Vec3 original)
@@ -106,6 +107,11 @@ public final class AntiKnockbackHack extends Hack
 	public boolean delayKnockback(Vec3 velocity, boolean fromHit)
 	{
 		if(!isEnabled() || mode.getSelected() != Mode.DELAY)
+			return false;
+			
+		// Grim sends velocity right after a setback teleport and expects it
+		// right away. Delaying it would cause another setback, and so on.
+		if(ticks == lastTeleportTick)
 			return false;
 		
 		if(queue.isEmpty())
@@ -137,6 +143,22 @@ public final class AntiKnockbackHack extends Hack
 	public void releaseDelayedKnockback()
 	{
 		ticks++;
+		release(!isEnabled() || mode.getSelected() != Mode.DELAY);
+	}
+	
+	/**
+	 * Releases everything right before a teleport is accepted. Otherwise,
+	 * the teleport would be accepted before the pongs that were sent before
+	 * it, which Grim flags as a failed teleport.
+	 */
+	public void onTeleport()
+	{
+		lastTeleportTick = ticks;
+		release(true);
+	}
+	
+	private void release(boolean releaseAll)
+	{
 		if(queue.isEmpty())
 			return;
 		
@@ -147,7 +169,6 @@ public final class AntiKnockbackHack extends Hack
 			return;
 		}
 		
-		boolean releaseAll = !isEnabled() || mode.getSelected() != Mode.DELAY;
 		while(!queue.isEmpty())
 		{
 			Delayed next = queue.peek();

@@ -11,10 +11,13 @@ import java.util.Optional;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.WurstClient;
 
@@ -34,5 +37,20 @@ public abstract class ClientPacketListenerMixin
 	{
 		return original.map(
 			WurstClient.INSTANCE.getHax().antiKnockbackHack::modifyKnockback);
+	}
+	
+	/**
+	 * Lets AntiKnockback's Delay mode release everything it holds back
+	 * before the teleport is accepted, on the main thread.
+	 */
+	@Inject(
+		method = "handleMovePlayer(Lnet/minecraft/network/protocol/game/ClientboundPlayerPositionPacket;)V",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+			shift = At.Shift.AFTER))
+	private void onHandleMovePlayer(ClientboundPlayerPositionPacket packet,
+		CallbackInfo ci)
+	{
+		WurstClient.INSTANCE.getHax().antiKnockbackHack.onTeleport();
 	}
 }
