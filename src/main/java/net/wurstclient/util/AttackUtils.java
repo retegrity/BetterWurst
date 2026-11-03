@@ -38,14 +38,15 @@ public enum AttackUtils
 	
 	/**
 	 * Returns true if combat hacks should wait this tick, e.g. because
-	 * BlockHit is blocking, AutoTotem is moving a totem or AutoSoup is
-	 * eating.
+	 * BlockHit is blocking, AutoTotem is moving a totem or AutoSoup/AutoEat
+	 * is switching to food.
 	 */
 	public static boolean shouldDelayAttack()
 	{
 		return WurstClient.INSTANCE.getHax().blockHitHack.shouldDelayAttack()
 			|| WurstClient.INSTANCE.getHax().autoTotemHack.isBusy()
-			|| WurstClient.INSTANCE.getHax().autoSoupHack.isBusy();
+			|| WurstClient.INSTANCE.getHax().autoSoupHack.isBusy()
+			|| WurstClient.INSTANCE.getHax().autoEatHack.isBusy();
 	}
 	
 	/**

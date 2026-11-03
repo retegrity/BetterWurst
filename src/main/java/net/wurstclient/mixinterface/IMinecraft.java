@@ -18,4 +18,11 @@ public interface IMinecraft
 	public User getWurstUser();
 	
 	public void setWurstUser(User user);
+	
+	/**
+	 * Counts client ticks. Unlike the player's tickCount, this changes at the
+	 * very start of a tick, so everything that one tick sends shares the same
+	 * value.
+	 */
+	public int getTicks();
 }
