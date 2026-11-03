@@ -68,6 +68,9 @@ public abstract class MinecraftMixin
 	private User wurstUser;
 	private ProfileKeyPairManager wurstProfileKeys;
 	
+	@Unique
+	private int wurstTicks;
+	
 	private MinecraftMixin(WurstClient wurst, String name,
 		boolean propagatesCrashes)
 	{
@@ -103,12 +106,14 @@ public abstract class MinecraftMixin
 	}
 	
 	/**
-	 * Updates the window title and icon of WurstOptions' "Wurst Minecraft
-	 * window style" when it's turned on or off.
+	 * Counts ticks for {@link #getTicks()} and updates the window title and
+	 * icon of WurstOptions' "Wurst Minecraft window style" when it's turned
+	 * on or off.
 	 */
 	@Inject(method = "tick()V", at = @At("HEAD"))
 	private void onTickHead(CallbackInfo ci)
 	{
+		wurstTicks++;
 		WurstWindowStyle.update();
 	}
 	
@@ -283,6 +288,12 @@ public abstract class MinecraftMixin
 	public User getWurstUser()
 	{
 		return wurstUser;
+	}
+	
+	@Override
+	public int getTicks()
+	{
+		return wurstTicks;
 	}
 	
 	@Override

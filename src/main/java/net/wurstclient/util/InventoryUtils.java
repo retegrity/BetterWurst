@@ -12,6 +12,7 @@ import java.util.stream.IntStream;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -226,6 +227,23 @@ public enum InventoryUtils
 				inventory.getSelectedSlot());
 		
 		return true;
+	}
+	
+	/**
+	 * Whether the server thinks you're standing still: not moving, jumping,
+	 * sprinting or sneaking. Grim's MultiActionsC flags (and cancels)
+	 * inventory clicks otherwise, since you can't do those things with your
+	 * inventory open. The server knows your keys from the last input packet.
+	 */
+	public static boolean isStandingStill()
+	{
+		Input input = MC.player.getLastSentInput();
+		if(input.forward() || input.backward() || input.left() || input.right()
+			|| input.jump() || input.shift())
+			return false;
+		
+		return !MC.player.isSprinting()
+			&& !WurstClient.INSTANCE.getHax().sneakHack.isPacketSneaking();
 	}
 	
 	public static int toNetworkSlot(int slot)

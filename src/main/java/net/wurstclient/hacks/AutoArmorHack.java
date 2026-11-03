@@ -170,12 +170,13 @@ public final class AutoArmorHack extends Hack
 	
 	/**
 	 * Whether a real player couldn't click in their inventory right now,
-	 * because they are walking, turning or using an item.
+	 * because they are walking, jumping, sprinting, sneaking, turning or
+	 * using an item.
 	 */
 	private boolean isBusy(LocalPlayer player)
 	{
-		if(player.input.getMoveVector().length() > 1e-5F
-			|| player.isUsingItem())
+		if(player.input.getMoveVector().length() > 1e-5F || player.isUsingItem()
+			|| !InventoryUtils.isStandingStill())
 			return true;
 		
 		// turning the camera, or a hack turning the rotation that is sent

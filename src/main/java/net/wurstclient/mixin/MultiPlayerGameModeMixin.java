@@ -13,6 +13,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -50,6 +51,9 @@ public abstract class MultiPlayerGameModeMixin implements IMultiPlayerGameMode
 	@Shadow
 	@Final
 	private Minecraft minecraft;
+	
+	@Unique
+	private int lastAttackTick = -1;
 	
 	@Inject(
 		method = "continueDestroyBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
@@ -111,6 +115,7 @@ public abstract class MultiPlayerGameModeMixin implements IMultiPlayerGameMode
 		if(player != minecraft.player)
 			return;
 		
+		lastAttackTick = WurstClient.IMC.getTicks();
 		EventManager.fire(new PlayerAttacksEntityEvent(target));
 	}
 	
@@ -146,6 +151,12 @@ public abstract class MultiPlayerGameModeMixin implements IMultiPlayerGameMode
 	public void rightClickItem()
 	{
 		useItem(minecraft.player, InteractionHand.MAIN_HAND);
+	}
+	
+	@Override
+	public boolean hasAttackedThisTick()
+	{
+		return WurstClient.IMC.getTicks() == lastAttackTick;
 	}
 	
 	@Override

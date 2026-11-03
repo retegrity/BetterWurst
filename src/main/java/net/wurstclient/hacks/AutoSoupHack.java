@@ -15,7 +15,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.npc.villager.Villager;
-import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -31,6 +30,7 @@ import net.wurstclient.events.HandleInputListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.settings.SliderSetting.ValueDisplay;
+import net.wurstclient.util.InventoryUtils;
 
 @SearchTags({"auto soup", "AutoStew", "auto stew"})
 public final class AutoSoupHack extends Hack implements HandleInputListener
@@ -44,6 +44,7 @@ public final class AutoSoupHack extends Hack implements HandleInputListener
 	
 	private int oldSlot = -1;
 	private int lastActionTick = -1;
+	private int waitingTick = -1;
 	
 	public AutoSoupHack()
 	{
@@ -77,7 +78,7 @@ public final class AutoSoupHack extends Hack implements HandleInputListener
 	{
 		LocalPlayer player = MC.player;
 		
-		if(canClickInventory())
+		if(InventoryUtils.isStandingStill())
 			sortBowls();
 		
 		// search soup in hotbar
@@ -89,16 +90,10 @@ public final class AutoSoupHack extends Hack implements HandleInputListener
 			// check if player should eat soup
 			if(!shouldEatSoup())
 			{
-				stopIfEating();
+				if(oldSlot != -1 && !waitForAttack())
+					stopIfEating();
 				return;
 			}
-			
-			// save old slot
-			if(oldSlot == -1)
-				oldSlot = player.getInventory().getSelectedSlot();
-			
-			// keep holding the use key, or vanilla stops eating
-			MC.options.keyUse.setDown(true);
 			
 			// vanilla would also stop using an item that was replaced,
 			// e.g. by a server that makes soups instant, later this tick
@@ -106,26 +101,40 @@ public final class AutoSoupHack extends Hack implements HandleInputListener
 				player.getItemInHand(player.getUsedItemHand()),
 				player.getUseItem()))
 				player.stopUsingItem();
-			
-			if(player.isUsingItem())
+				
+			// already eating, so just keep holding the use key, or vanilla
+			// stops eating
+			if(player.isUsingItem()
+				&& player.getUsedItemHand() == InteractionHand.MAIN_HAND
+				&& isSoup(player.getMainHandItem()))
 			{
-				// already eating, so don't send another use packet
-				if(player.getUsedItemHand() == InteractionHand.MAIN_HAND
-					&& isSoup(player.getMainHandItem()))
-					return;
-					
-				// using something else, e.g. a shield, so let go of it
-				// first. Using right after that in the same tick would
-				// flag Grim's PacketOrderI.
-				MC.gameMode.releaseUsingItem(player);
-				lastActionTick = player.tickCount;
+				MC.options.keyUse.setDown(true);
 				return;
 			}
+			
+			if(waitForAttack())
+				return;
+				
+			// using something else, e.g. a shield, so let go of it first.
+			// Using right after that in the same tick would flag Grim's
+			// PacketOrderI.
+			if(player.isUsingItem())
+			{
+				MC.options.keyUse.setDown(false);
+				MC.gameMode.releaseUsingItem(player);
+				lastActionTick = IMC.getTicks();
+				return;
+			}
+			
+			// save old slot
+			if(oldSlot == -1)
+				oldSlot = player.getInventory().getSelectedSlot();
 			
 			// set slot and eat soup, which sends the slot first
 			player.getInventory().setSelectedSlot(soupInHotbar);
 			IMC.getGameMode().rightClickItem();
-			lastActionTick = player.tickCount;
+			MC.options.keyUse.setDown(true);
+			lastActionTick = IMC.getTicks();
 			
 			// like a vanilla right-click, so vanilla doesn't send another
 			// one this tick if the soup can't be eaten (e.g. full hunger)
@@ -133,28 +142,39 @@ public final class AutoSoupHack extends Hack implements HandleInputListener
 			return;
 		}
 		
-		stopIfEating();
+		if(oldSlot != -1 && !waitForAttack())
+			stopIfEating();
 		
 		// search soup in inventory
 		int soupInInventory = findSoup(9, 36);
 		
 		// move soup in inventory to hotbar
-		if(soupInInventory != -1 && canClickInventory())
+		if(soupInInventory != -1 && InventoryUtils.isStandingStill())
 			IMC.getGameMode().windowClick_QUICK_MOVE(soupInInventory);
 	}
 	
 	/**
-	 * Returns true while AutoSoup is eating or about to eat, so combat hacks
-	 * don't attack in the same tick. Attacking while eating flags Grim's
-	 * MultiActionsA and switching slots after an attack flags PacketOrderE.
+	 * Switching slots, using or letting go of an item right after an attack
+	 * flags Grim, so this waits for the next tick instead.
+	 */
+	private boolean waitForAttack()
+	{
+		if(!IMC.getGameMode().hasAttackedThisTick())
+			return false;
+		
+		waitingTick = IMC.getTicks() + 1;
+		return true;
+	}
+	
+	/**
+	 * Returns true while AutoSoup is switching slots or starting to eat, so
+	 * combat hacks don't attack in the same tick. Attacking first would make
+	 * AutoSoup wait a tick, and this keeps them from doing that forever.
 	 */
 	public boolean isBusy()
 	{
-		if(!isEnabled() || MC.player == null)
-			return false;
-		
-		return oldSlot != -1 || lastActionTick == MC.player.tickCount
-			|| findSoup(0, 9) != -1 && shouldEatSoup();
+		int ticks = IMC.getTicks();
+		return isEnabled() && (lastActionTick == ticks || waitingTick == ticks);
 	}
 	
 	private void sortBowls()
@@ -179,23 +199,6 @@ public final class AutoSoupHack extends Hack implements HandleInputListener
 			if(swap)
 				IMC.getGameMode().windowClick_PICKUP(i < 9 ? 36 + i : i);
 		}
-	}
-	
-	/**
-	 * Grim's MultiActionsC flags (and cancels) inventory clicks while the
-	 * server thinks you're moving, jumping, sprinting or sneaking, since you
-	 * can't do that with your inventory open. The server knows the keys from
-	 * the last input packet.
-	 */
-	private boolean canClickInventory()
-	{
-		Input input = MC.player.getLastSentInput();
-		if(input.forward() || input.backward() || input.left() || input.right()
-			|| input.jump() || input.shift())
-			return false;
-		
-		return !MC.player.isSprinting()
-			&& !WURST.getHax().sneakHack.isPacketSneaking();
 	}
 	
 	private int findSoup(int startSlot, int endSlot)
@@ -260,6 +263,6 @@ public final class AutoSoupHack extends Hack implements HandleInputListener
 		// reset slot
 		MC.player.getInventory().setSelectedSlot(oldSlot);
 		oldSlot = -1;
-		lastActionTick = MC.player.tickCount;
+		lastActionTick = IMC.getTicks();
 	}
 }
