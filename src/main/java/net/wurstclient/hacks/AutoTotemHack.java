@@ -293,9 +293,10 @@ public final class AutoTotemHack extends Hack implements UpdateListener
 	
 	private KeyMapping[] getMovementKeys()
 	{
+		// sneaking also flags Grim's MultiActionsC
 		return new KeyMapping[]{MC.options.keyUp, MC.options.keyDown,
 			MC.options.keyLeft, MC.options.keyRight, MC.options.keyJump,
-			MC.options.keySprint};
+			MC.options.keySprint, MC.options.keyShift};
 	}
 	
 	private void countTotems()

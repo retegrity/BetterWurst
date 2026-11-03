@@ -39,7 +39,6 @@ import net.minecraft.world.phys.HitResult;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
 import net.wurstclient.events.HandleInputListener;
-import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.settings.CheckboxSetting;
 import net.wurstclient.settings.SliderSetting;
@@ -50,8 +49,7 @@ import net.wurstclient.util.InventoryUtils;
 
 @SearchTags({"auto eat", "AutoFood", "auto food", "AutoFeeder", "auto feeder",
 	"AutoFeeding", "auto feeding", "AutoSoup", "auto soup"})
-public final class AutoEatHack extends Hack
-	implements UpdateListener, HandleInputListener
+public final class AutoEatHack extends Hack implements HandleInputListener
 {
 	private final SliderSetting targetHunger = new SliderSetting(
 		"Target hunger", "description.wurst.setting.autoeat.target_hunger", 10,
@@ -94,6 +92,8 @@ public final class AutoEatHack extends Hack
 	
 	private int oldSlot = -1;
 	private boolean eatingOffhand;
+	private int lastActionTick = -1;
+	private int waitingTick = -1;
 	
 	public AutoEatHack()
 	{
@@ -118,28 +118,42 @@ public final class AutoEatHack extends Hack
 	protected void onEnable()
 	{
 		WURST.getHax().autoSoupHack.setEnabled(false);
-		EVENTS.add(UpdateListener.class, this);
 		EVENTS.add(HandleInputListener.class, this);
 	}
 	
 	@Override
 	protected void onDisable()
 	{
-		EVENTS.remove(UpdateListener.class, this);
 		EVENTS.remove(HandleInputListener.class, this);
 		
 		if(isEating())
 			stopEating();
 	}
 	
+	/**
+	 * Runs right before the game handles the use key, so food is selected
+	 * before vanilla can right-click whatever you are holding. That click
+	 * and then switching slots in the same tick would flag Grim's
+	 * PacketOrderE.
+	 */
 	@Override
-	public void onUpdate()
+	public void onHandleInput()
 	{
 		LocalPlayer player = MC.player;
 		
+		// Lets go of the use key once the off-hand food is eaten. The client
+		// only finishes eating when the server says so, and that packet is
+		// handled right before this. Otherwise, the game would use the main
+		// hand with the key that is still held.
+		if(eatingOffhand && !player.isUsingItem())
+		{
+			MC.options.keyUse.setDown(false);
+			eatingOffhand = false;
+		}
+		
 		if(!shouldEat())
 		{
-			if(isEating())
+			if(isEating() && !waitForAttack())
 				stopEating();
 			
 			return;
@@ -167,47 +181,83 @@ public final class AutoEatHack extends Hack
 		{
 			int maxPoints = targetHungerI - foodLevel;
 			eat(maxPoints);
+			return;
 		}
+		
+		// reached the target hunger
+		if(isEating() && !waitForAttack())
+			stopEating();
 	}
 	
 	private void eat(int maxPoints)
 	{
-		Inventory inventory = MC.player.getInventory();
+		LocalPlayer player = MC.player;
+		Inventory inventory = player.getInventory();
 		int foodSlot = findBestFoodSlot(maxPoints);
 		
 		if(foodSlot == -1)
 		{
-			if(isEating())
+			if(isEating() && !waitForAttack())
 				stopEating();
 			
 			return;
 		}
 		
-		// select food
-		if(foodSlot < 9)
+		// food in the inventory: move it to the hotbar first
+		if(foodSlot >= 9 && foodSlot != 40)
 		{
-			if(!isEating())
-				oldSlot = inventory.getSelectedSlot();
-			
-			inventory.setSelectedSlot(foodSlot);
-			
-		}else if(foodSlot == 40)
-		{
-			if(!isEating())
-				oldSlot = inventory.getSelectedSlot();
-			
-			eatOffhand();
-			return;
-			
-		}else
-		{
-			InventoryUtils.selectItem(foodSlot);
+			if(InventoryUtils.isStandingStill())
+				InventoryUtils.selectItem(foodSlot);
 			return;
 		}
 		
-		// eat food
-		MC.options.keyUse.setDown(true);
+		// vanilla would also stop using an item that was replaced later
+		// this tick
+		if(player.isUsingItem() && !ItemStack.isSameItem(
+			player.getItemInHand(player.getUsedItemHand()),
+			player.getUseItem()))
+			player.stopUsingItem();
+			
+		// already eating, so just keep holding the use key, or vanilla stops
+		// eating
+		if(player.isUsingItem() && player.getUseItem().has(DataComponents.FOOD))
+		{
+			MC.options.keyUse.setDown(true);
+			return;
+		}
+		
+		if(waitForAttack())
+			return;
+			
+		// using something else, e.g. a shield, so let go of it first. Using
+		// right after that in the same tick would flag Grim's PacketOrderI.
+		if(player.isUsingItem())
+		{
+			MC.options.keyUse.setDown(false);
+			MC.gameMode.releaseUsingItem(player);
+			lastActionTick = IMC.getTicks();
+			return;
+		}
+		
+		if(!isEating())
+			oldSlot = inventory.getSelectedSlot();
+		
+		lastActionTick = IMC.getTicks();
+		
+		if(foodSlot == 40)
+		{
+			eatOffhand();
+			return;
+		}
+		
+		// select and eat food, which sends the slot first
+		inventory.setSelectedSlot(foodSlot);
 		IMC.getGameMode().rightClickItem();
+		MC.options.keyUse.setDown(true);
+		
+		// like a vanilla right-click, so vanilla doesn't send another one
+		// this tick if the food can't be eaten
+		MC.rightClickDelay = 4;
 	}
 	
 	/**
@@ -218,8 +268,7 @@ public final class AutoEatHack extends Hack
 	private void eatOffhand()
 	{
 		LocalPlayer player = MC.player;
-		if(!player.isUsingItem())
-			MC.gameMode.useItem(player, InteractionHand.OFF_HAND);
+		MC.gameMode.useItem(player, InteractionHand.OFF_HAND);
 		
 		// the game stops eating when the use key isn't held
 		eatingOffhand = player.isUsingItem();
@@ -227,19 +276,27 @@ public final class AutoEatHack extends Hack
 	}
 	
 	/**
-	 * Lets go of the use key once the off-hand food is eaten. The client only
-	 * finishes eating when the server says so, and that packet is handled
-	 * right before the game reads the keys. So this has to happen here, or
-	 * the game would use the main hand with the key that is still held.
+	 * Switching slots, using or letting go of an item right after an attack
+	 * flags Grim, so this waits for the next tick instead.
 	 */
-	@Override
-	public void onHandleInput()
+	private boolean waitForAttack()
 	{
-		if(!eatingOffhand || MC.player.isUsingItem())
-			return;
+		if(!IMC.getGameMode().hasAttackedThisTick())
+			return false;
 		
-		MC.options.keyUse.setDown(false);
-		eatingOffhand = false;
+		waitingTick = IMC.getTicks() + 1;
+		return true;
+	}
+	
+	/**
+	 * Returns true while AutoEat is switching slots or starting to eat, so
+	 * combat hacks don't attack in the same tick. Attacking first would make
+	 * AutoEat wait a tick, and this keeps them from doing that forever.
+	 */
+	public boolean isBusy()
+	{
+		int ticks = IMC.getTicks();
+		return isEnabled() && (lastActionTick == ticks || waitingTick == ticks);
 	}
 	
 	private int findBestFoodSlot(int maxPoints)
@@ -317,6 +374,7 @@ public final class AutoEatHack extends Hack
 		eatingOffhand = false;
 		MC.player.getInventory().setSelectedSlot(oldSlot);
 		oldSlot = -1;
+		lastActionTick = IMC.getTicks();
 	}
 	
 	private boolean isAllowedFood(Consumable consumable)

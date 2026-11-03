@@ -26,6 +26,13 @@ public interface IMultiPlayerGameMode
 	
 	public void rightClickItem();
 	
+	/**
+	 * Whether you attacked an entity earlier in this tick. Switching slots,
+	 * using or letting go of an item after that in the same tick flags Grim
+	 * (PacketOrderE, PacketOrderI, PacketOrderJ).
+	 */
+	public boolean hasAttackedThisTick();
+	
 	public void rightClickBlock(BlockPos pos, Direction side, Vec3 hitVec);
 	
 	public void sendPlayerActionC2SPacket(

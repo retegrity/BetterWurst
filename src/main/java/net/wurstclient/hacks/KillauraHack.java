@@ -112,6 +112,12 @@ public final class KillauraHack extends Hack
 	private final AttackSwingSetting attackSwing = new AttackSwingSetting(
 		AttackSwingSetting.genericCombatDescription(this), AttackSwing.CLIENT);
 	
+	private final CheckboxSetting attackWhileBlocking =
+		new CheckboxSetting("Attack while blocking",
+			"Attacks even while you're blocking with a shield or using"
+				+ " items.\n\n" + "This would not be possible in vanilla.",
+			false);
+	
 	private final CheckboxSetting damageIndicator = new CheckboxSetting(
 		"Damage indicator",
 		"Renders a colored box within the target, inversely proportional to its remaining health.",
@@ -164,6 +170,7 @@ public final class KillauraHack extends Hack
 		addSetting(acceleration);
 		addSetting(missChance);
 		addSetting(attackSwing);
+		addSetting(attackWhileBlocking);
 		addSetting(damageIndicator);
 		addSetting(pauseOnContainers);
 		addSetting(checkLOS);
@@ -338,6 +345,11 @@ public final class KillauraHack extends Hack
 	public void onHandleInput()
 	{
 		if(target == null)
+			return;
+			
+		// Grim's MultiActionsA flags attacks while using an item, and
+		// MultiActionsE flags the swing of a miss
+		if(!attackWhileBlocking.isChecked() && MC.player.isUsingItem())
 			return;
 		
 		if(WURST.getHax().criticalsHack.shouldDelayAttack())
