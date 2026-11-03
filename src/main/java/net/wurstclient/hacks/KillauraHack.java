@@ -44,8 +44,8 @@ import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"kill aura", "ForceField", "force field", "CrystalAura",
 	"crystal aura", "AutoCrystal", "auto crystal"})
-public final class KillauraHack extends Hack
-	implements UpdateListener, HandleInputListener, RenderListener
+public final class KillauraHack extends Hack implements UpdateListener,
+	HandleInputListener, RenderListener
 {
 	private final SliderSetting range = new SliderSetting("Attack range",
 		"Determines how far Killaura will reach to attack entities.\n"
@@ -304,7 +304,7 @@ public final class KillauraHack extends Hack
 		// "side" is relative to the direction you are looking at it from
 		AABB box = entity.getBoundingBox();
 		Vec3 center = box.getCenter();
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		double dx = center.x - eyes.x;
 		double dz = center.z - eyes.z;
 		double length = Math.hypot(dx, dz);
@@ -319,7 +319,7 @@ public final class KillauraHack extends Hack
 	
 	private Vec3 getClosestPoint(AABB box)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		
 		// slightly smaller box, so the point is never on the very edge
 		AABB inner = box.deflate(0.01);
@@ -367,7 +367,7 @@ public final class KillauraHack extends Hack
 	{
 		// the attack is sent before this tick's movement packet, so the
 		// server checks it against the rotation from the last tick
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 look = new Rotation(WURST.getRotationFaker().getServerYaw(),
 			WURST.getRotationFaker().getServerPitch()).toLookVec();
 		

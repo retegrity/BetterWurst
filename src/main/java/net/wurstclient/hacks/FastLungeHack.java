@@ -336,9 +336,8 @@ public final class FastLungeHack extends Hack implements UpdateListener
 	{
 		ItemStack stack = player.getInventory().getItem(slot);
 		double base = player.getAttributeBaseValue(Attributes.ATTACK_SPEED);
-		double attackSpeed = stack.isEmpty() ? base
-			: ItemUtils.calculateModifiedAttribute(stack.getItem(),
-				Attributes.ATTACK_SPEED, base, EquipmentSlot.MAINHAND);
+		double attackSpeed = ItemUtils.calculateModifiedAttribute(stack,
+			Attributes.ATTACK_SPEED, EquipmentSlot.MAINHAND).orElse(base);
 		if(attackSpeed <= 0)
 			return false;
 			

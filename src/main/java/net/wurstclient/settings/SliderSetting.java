@@ -19,7 +19,6 @@ import net.wurstclient.WurstClient;
 import net.wurstclient.clickgui.Component;
 import net.wurstclient.clickgui.components.SliderComponent;
 import net.wurstclient.keybinds.PossibleKeybind;
-import net.wurstclient.util.MathUtils;
 import net.wurstclient.util.json.JsonUtils;
 import net.wurstclient.util.text.WText;
 
@@ -76,7 +75,7 @@ public class SliderSetting extends Setting implements SliderLock
 		if(!isLimited())
 			return value;
 		
-		return MathUtils.clamp(value, usableMin, usableMax);
+		return Math.clamp(value, usableMin, usableMax);
 	}
 	
 	public final double getValueSq()
@@ -151,7 +150,7 @@ public class SliderSetting extends Setting implements SliderLock
 	private void setValueIgnoreLock(double value)
 	{
 		value = (int)Math.round(value / increment) * increment;
-		value = MathUtils.clamp(value, usableMin, usableMax);
+		value = Math.clamp(value, usableMin, usableMax);
 		
 		this.value = value;
 		update();
@@ -191,15 +190,15 @@ public class SliderSetting extends Setting implements SliderLock
 	
 	public final double getPercentage()
 	{
-		return MathUtils.clamp((getValue() - minimum) / getRange(), 0, 1);
+		return Math.clamp((getValue() - minimum) / getRange(), 0, 1);
 	}
 	
 	public float[] getKnobColor()
 	{
 		float f = (float)(2 * getPercentage());
 		
-		float red = MathUtils.clamp(f, 0, 1);
-		float green = MathUtils.clamp(2 - f, 0, 1);
+		float red = Math.clamp(f, 0, 1);
+		float green = Math.clamp(2 - f, 0, 1);
 		float blue = 0;
 		
 		return new float[]{red, green, blue};

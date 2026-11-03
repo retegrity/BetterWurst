@@ -43,7 +43,7 @@ public final class ComboBoxComponent<T extends Enum<T>> extends Component
 	
 	@Override
 	public void handleMouseClick(double mouseX, double mouseY, int mouseButton,
-		MouseButtonEvent context)
+		MouseButtonEvent extractor)
 	{
 		if(mouseX < getX() + getWidth() - popupWidth - ARROW_SIZE - 4)
 			return;
@@ -87,7 +87,7 @@ public final class ComboBoxComponent<T extends Enum<T>> extends Component
 	}
 	
 	@Override
-	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY,
+	public void render(GuiGraphicsExtractor extractor, int mouseX, int mouseY,
 		float partialTicks)
 	{
 		int x1 = getX();
@@ -106,28 +106,28 @@ public final class ComboBoxComponent<T extends Enum<T>> extends Component
 			GUI.setTooltip(setting.getWrappedDescription(200));
 		
 		// background
-		context.fill(x1, y1, x4, y2, getFillColor(false));
+		extractor.fill(x1, y1, x4, y2, getFillColor(false));
 		
 		// box
-		context.fill(x4, y1, x2, y2, getFillColor(hBox));
+		extractor.fill(x4, y1, x2, y2, getFillColor(hBox));
 		
-		context.guiRenderState.up();
+		extractor.guiRenderState.up();
 		
 		// outlines
 		int outlineColor = RenderUtils.toIntColor(GUI.getAcColor(), 0.5F);
-		RenderUtils.drawBorder2D(context, x4, y1, x2, y2, outlineColor);
-		RenderUtils.drawLine2D(context, x3, y1, x3, y2, outlineColor);
+		RenderUtils.drawBorder2D(extractor, x4, y1, x2, y2, outlineColor);
+		RenderUtils.drawLine2D(extractor, x3, y1, x3, y2, outlineColor);
 		
 		// arrow
-		ClickGuiIcons.drawMinimizeArrow(context, x3, y1 + 0.5F, x2, y2 - 0.5F,
+		ClickGuiIcons.drawMinimizeArrow(extractor, x3, y1 + 0.5F, x2, y2 - 0.5F,
 			hBox, !isPopupOpen());
 		
 		// text
 		String name = setting.getName();
 		String value = "" + setting.getSelected();
 		int txtColor = GUI.getTxtColor();
-		context.text(WurstFont.get(), name, x1, y1 + 2, txtColor, false);
-		context.text(WurstFont.get(), value, x4 + 2, y1 + 2, txtColor, false);
+		extractor.text(WurstFont.get(), name, x1, y1 + 2, txtColor, false);
+		extractor.text(WurstFont.get(), value, x4 + 2, y1 + 2, txtColor, false);
 	}
 	
 	private int getFillColor(boolean hovering)

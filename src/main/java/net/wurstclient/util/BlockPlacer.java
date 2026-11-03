@@ -99,7 +99,7 @@ public enum BlockPlacer
 			hitVecs[i] = center.add(relHitVec);
 		}
 		
-		Vec3 eyesPos = RotationUtils.getEyesPos();
+		Vec3 eyesPos = MC.player.getEyePosition();
 		Vec3 posVec = Vec3.atCenterOf(pos);
 		
 		double distanceSqToPosVec = eyesPos.distanceToSqr(posVec);
@@ -186,7 +186,7 @@ public enum BlockPlacer
 	 */
 	public static BlockPlacingParams getAirPlacingParams(BlockPos pos)
 	{
-		Vec3 eyesPos = RotationUtils.getEyesPos();
+		Vec3 eyesPos = MC.player.getEyePosition();
 		Vec3 hitVec = Vec3.atCenterOf(pos);
 		
 		// face the player so that directional blocks end up facing them

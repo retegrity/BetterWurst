@@ -25,7 +25,7 @@ public final class WurstLogo
 	private static final Identifier LOGO_TEXTURE =
 		Identifier.fromNamespaceAndPath("wurst", "wurst_128.png");
 	
-	public void render(GuiGraphicsExtractor context)
+	public void render(GuiGraphicsExtractor extractor)
 	{
 		WurstLogoOtf otf = WURST.getOtfs().wurstLogoOtf;
 		if(!otf.isVisible())
@@ -33,7 +33,7 @@ public final class WurstLogo
 		
 		if(otf.isTextLogo())
 		{
-			renderTextLogo(context, otf);
+			renderTextLogo(extractor, otf);
 			return;
 		}
 		
@@ -49,24 +49,25 @@ public final class WurstLogo
 					RenderUtils.toIntColor(WURST.getGui().getAcColor(), 0.5F);
 			else
 				bgColor = otf.getBackgroundColor();
-			context.fill(0, 6, tr.width(version) + 76, 17, bgColor);
+			extractor.fill(0, 6, tr.width(version) + 76, 17, bgColor);
 			
-			context.guiRenderState.up();
+			extractor.guiRenderState.up();
 			
 			// version string
-			context.text(tr, version, 74, 8, otf.getTextColor(), false);
+			extractor.text(tr, version, 74, 8, otf.getTextColor(), false);
 		}
 		
 		// Wurst logo
-		context.blit(RenderPipelines.GUI_TEXTURED, LOGO_TEXTURE, 0, 3, 0, 0, 72,
-			18, 72, 18);
+		extractor.blit(RenderPipelines.GUI_TEXTURED, LOGO_TEXTURE, 0, 3, 0, 0,
+			72, 18, 72, 18);
 	}
 	
 	/**
 	 * Renders the logo as the text "Wurst" (optionally with the version),
 	 * scaled up, instead of the image and the version strip.
 	 */
-	private void renderTextLogo(GuiGraphicsExtractor context, WurstLogoOtf otf)
+	private void renderTextLogo(GuiGraphicsExtractor extractor,
+		WurstLogoOtf otf)
 	{
 		String text = "Wurst";
 		if(otf.isTextVersion())
@@ -80,11 +81,11 @@ public final class WurstLogo
 		Font tr = otf.isTextCustomFont()
 			? WURST.getOtfs().fontOtf.getFont(scale) : WurstClient.MC.font;
 		
-		Matrix3x2fStack matrices = context.pose();
+		Matrix3x2fStack matrices = extractor.pose();
 		matrices.pushMatrix();
 		matrices.translate(2, 2);
 		matrices.scale(scale, scale);
-		context.text(tr, text, 0, 0, color, true);
+		extractor.text(tr, text, 0, 0, color, true);
 		matrices.popMatrix();
 	}
 	

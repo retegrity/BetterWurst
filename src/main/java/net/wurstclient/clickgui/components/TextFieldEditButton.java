@@ -38,7 +38,7 @@ public final class TextFieldEditButton extends Component
 	
 	@Override
 	public void handleMouseClick(double mouseX, double mouseY, int mouseButton,
-		MouseButtonEvent context)
+		MouseButtonEvent extractor)
 	{
 		if(mouseY < getY() + TEXT_HEIGHT)
 			return;
@@ -56,7 +56,7 @@ public final class TextFieldEditButton extends Component
 	}
 	
 	@Override
-	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY,
+	public void render(GuiGraphicsExtractor extractor, int mouseX, int mouseY,
 		float partialTicks)
 	{
 		float[] bgColor = GUI.getBgColor();
@@ -78,18 +78,19 @@ public final class TextFieldEditButton extends Component
 			GUI.setTooltip(ChatUtils.wrapText(setting.getValue(), 200));
 		
 		// background
-		context.fill(x1, y1, x2, y3, RenderUtils.toIntColor(bgColor, opacity));
+		extractor.fill(x1, y1, x2, y3,
+			RenderUtils.toIntColor(bgColor, opacity));
 		
 		// box
-		context.fill(x1, y3, x2, y2,
+		extractor.fill(x1, y3, x2, y2,
 			RenderUtils.toIntColor(bgColor, opacity * (hBox ? 1.5F : 1)));
-		RenderUtils.drawBorder2D(context, x1, y3, x2, y2,
+		RenderUtils.drawBorder2D(extractor, x1, y3, x2, y2,
 			RenderUtils.toIntColor(GUI.getAcColor(), 0.5F));
 		
 		// text
 		int txtColor = GUI.getTxtColor();
-		context.guiRenderState.up();
-		context.text(WurstFont.get(), setting.getName(), x1, y1 + 2, txtColor,
+		extractor.guiRenderState.up();
+		extractor.text(WurstFont.get(), setting.getName(), x1, y1 + 2, txtColor,
 			false);
 		String value = setting.getValue();
 		int maxWidth = getWidth() - WurstFont.get().width("...") - 2;
@@ -97,7 +98,7 @@ public final class TextFieldEditButton extends Component
 			maxWidth, Style.EMPTY);
 		if(maxLength < value.length())
 			value = value.substring(0, maxLength) + "...";
-		context.text(WurstFont.get(), value, x1 + 2, y3 + 2, txtColor, false);
+		extractor.text(WurstFont.get(), value, x1 + 2, y3 + 2, txtColor, false);
 	}
 	
 	@Override

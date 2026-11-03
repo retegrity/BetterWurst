@@ -295,7 +295,7 @@ public final class BlockEspHack extends Hack implements UpdateListener,
 	private void startBuild(int version)
 	{
 		builtVersion = version;
-		BlockPos eyesPos = BlockPos.containing(RotationUtils.getEyesPos());
+		BlockPos eyesPos = BlockPos.containing(MC.player.getEyePosition());
 		int maxBlocks = limit.getValueLog();
 		List<List<Result>> matches = coordinator.getMatchLists();
 		

@@ -43,7 +43,7 @@ public final class FeatureButton extends Component
 	
 	@Override
 	public void handleMouseClick(double mouseX, double mouseY, int mouseButton,
-		MouseButtonEvent context)
+		MouseButtonEvent extractor)
 	{
 		if(mouseButton != InputConstants.MOUSE_BUTTON_LEFT)
 			return;
@@ -85,7 +85,7 @@ public final class FeatureButton extends Component
 	}
 	
 	@Override
-	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY,
+	public void render(GuiGraphicsExtractor extractor, int mouseX, int mouseY,
 		float partialTicks)
 	{
 		int x1 = getX();
@@ -102,29 +102,29 @@ public final class FeatureButton extends Component
 			GUI.setTooltip(feature.getWrappedDescription(200));
 		
 		// buttons
-		context.fill(x1, y1, x3, y2,
+		extractor.fill(x1, y1, x3, y2,
 			getButtonColor(feature.isEnabled(), hFeature));
 		if(hasSettings)
-			context.fill(x3, y1, x2, y2, getButtonColor(false, hSettings));
+			extractor.fill(x3, y1, x2, y2, getButtonColor(false, hSettings));
 		
-		context.guiRenderState.up();
+		extractor.guiRenderState.up();
 		
 		// outlines
 		int outlineColor = RenderUtils.toIntColor(GUI.getAcColor(), 0.5F);
-		RenderUtils.drawBorder2D(context, x1, y1, x2, y2, outlineColor);
+		RenderUtils.drawBorder2D(extractor, x1, y1, x2, y2, outlineColor);
 		if(hasSettings)
-			RenderUtils.drawLine2D(context, x3, y1, x3, y2, outlineColor);
+			RenderUtils.drawLine2D(extractor, x3, y1, x3, y2, outlineColor);
 		
 		// arrow
 		if(hasSettings)
-			ClickGuiIcons.drawMinimizeArrow(context, x3, y1 + 0.5F, x2,
+			ClickGuiIcons.drawMinimizeArrow(extractor, x3, y1 + 0.5F, x2,
 				y2 - 0.5F, hSettings, !isSettingsWindowOpen());
 		
 		// text
 		String name = feature.getName();
 		int tx = x1 + (x3 - x1 - WurstFont.get().width(name)) / 2;
 		int ty = y1 + 2;
-		context.text(WurstFont.get(), name, tx, ty, GUI.getTxtColor(), false);
+		extractor.text(WurstFont.get(), name, tx, ty, GUI.getTxtColor(), false);
 	}
 	
 	private int getButtonColor(boolean enabled, boolean hovering)
