@@ -199,6 +199,14 @@ public final class SneakHack extends Hack
 	}
 	
 	/**
+	 * Whether Packet mode is telling the server that you are sneaking.
+	 */
+	public boolean isPacketSneaking()
+	{
+		return isEnabled() && packetSneaking;
+	}
+	
+	/**
 	 * Whether Legit mode should sneak in this tick. Called from
 	 * LocalPlayerMixin right after the game reads the keys. Pressing the
 	 * sneak key alone isn't enough, since opening or closing a screen
