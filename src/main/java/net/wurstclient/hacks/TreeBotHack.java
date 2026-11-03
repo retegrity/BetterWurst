@@ -57,7 +57,6 @@ import net.wurstclient.util.BlockBreaker.BlockBreakingParams;
 import net.wurstclient.util.BlockUtils;
 import net.wurstclient.util.OverlayRenderer;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"tree bot"})
 @DontSaveState
@@ -380,7 +379,7 @@ public final class TreeBotHack extends Hack
 	 */
 	private boolean canSee(BlockPos pos, Vec3 point)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 end = point.add(point.subtract(eyes).normalize().scale(0.1));
 		BlockHitResult hit = MC.level.clip(new ClipContext(eyes, end,
 			ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, MC.player));
@@ -395,7 +394,7 @@ public final class TreeBotHack extends Hack
 	
 	private BlockHitResult raycast(float yaw, float pitch)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 end = eyes
 			.add(new Rotation(yaw, pitch).toLookVec().scale(range.getValue()));
 		BlockHitResult hit = MC.level.clip(new ClipContext(eyes, end,

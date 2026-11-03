@@ -32,10 +32,5 @@ public final class StepHack extends Hack
 		return stepHeight;
 	}
 	
-	public boolean isAutoJumpAllowed()
-	{
-		return !isEnabled() && !WURST.getCmds().goToCmd.isActive();
-	}
-	
-	// See LocalPlayerMixin.maxUpStep()
+	// See step.LivingEntityMixin.modifyMaxUpStep()
 }

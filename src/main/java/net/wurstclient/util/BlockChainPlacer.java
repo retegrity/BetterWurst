@@ -130,7 +130,7 @@ public enum BlockChainPlacer
 		AABB playerBox, double rangeSq, Predicate<BlockPos> supportFilter,
 		int maxSteps, Vec3 futureEyes)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		
 		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
 		HashMap<BlockPos, Integer> steps = new HashMap<>();
@@ -266,7 +266,7 @@ public enum BlockChainPlacer
 	public static BlockHitResult getServerRotationHit(Placement placement,
 		double range)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 faceCenter = placement.hitVec();
 		Vec3 normal = Vec3.atLowerCornerOf(placement.side().getUnitVec3i());
 		if(eyes.subtract(faceCenter).dot(normal) <= 0)
@@ -281,7 +281,7 @@ public enum BlockChainPlacer
 	 */
 	public static boolean hitsFace(Placement placement, double range)
 	{
-		return getHitFrom(RotationUtils.getEyesPos(), getServerLook(),
+		return getHitFrom(MC.player.getEyePosition(), getServerLook(),
 			placement, range) != null;
 	}
 	
@@ -290,7 +290,7 @@ public enum BlockChainPlacer
 	 */
 	public static BlockHitResult raycastServerRotation(double range)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		return BlockUtils.raycast(eyes, eyes.add(getServerLook().scale(range)));
 	}
 	

@@ -44,7 +44,6 @@ import net.wurstclient.util.EntityUtils;
 import net.wurstclient.util.FaceAimPoint;
 import net.wurstclient.util.PlaceRotationGuard;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"anchor aura", "CrystalAura", "crystal aura"})
 public final class AnchorAuraHack extends Hack implements UpdateListener
@@ -387,7 +386,7 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 	private Action getShieldAction(int glowstoneSlot)
 	{
 		Vec3 anchorCenter = Vec3.atCenterOf(anchorPos);
-		Vec3 toPlayer = RotationUtils.getEyesPos().subtract(anchorCenter);
+		Vec3 toPlayer = MC.player.getEyePosition().subtract(anchorCenter);
 		Direction dir = Direction.getApproximateNearest(toPlayer);
 		BlockPos shieldPos = anchorPos.relative(dir);
 		
@@ -416,7 +415,7 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 	 */
 	private Action clickAnchor(ActionType type, int slot)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 center = Vec3.atCenterOf(anchorPos);
 		Action best = null;
 		double bestDistSq = Double.MAX_VALUE;
@@ -449,7 +448,7 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 	 */
 	private Placement getPlacement(BlockPos pos, Predicate<BlockPos> filter)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Placement best = null;
 		double bestDistSq = Double.MAX_VALUE;
 		
@@ -481,7 +480,7 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 	
 	private BlockHitResult raycast(float yaw, float pitch)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 look = new Rotation(yaw, pitch).toLookVec();
 		return BlockUtils.raycast(eyes, eyes.add(look.scale(range.getValue())));
 	}
@@ -541,7 +540,7 @@ public final class AnchorAuraHack extends Hack implements UpdateListener
 	
 	private boolean isInRange(Vec3 vec)
 	{
-		return RotationUtils.getEyesPos().distanceToSqr(vec) <= range
+		return MC.player.getEyePosition().distanceToSqr(vec) <= range
 			.getValueSq();
 	}
 	

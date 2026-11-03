@@ -66,7 +66,7 @@ public final class ComboBoxPopup<T extends Enum<T>> extends Popup
 	}
 	
 	@Override
-	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY)
+	public void render(GuiGraphicsExtractor extractor, int mouseX, int mouseY)
 	{
 		int x1 = getX();
 		int x2 = x1 + getWidth();
@@ -78,7 +78,7 @@ public final class ComboBoxPopup<T extends Enum<T>> extends Popup
 		if(hovering)
 			GUI.setTooltip("");
 		
-		context.enableScissor(x1, y1, x2, y2);
+		extractor.enableScissor(x1, y1, x2, y2);
 		
 		int yi1 = y1 + scroll - 11;
 		for(T value : setting.getValues())
@@ -94,15 +94,15 @@ public final class ComboBoxPopup<T extends Enum<T>> extends Popup
 				continue;
 			
 			boolean hValue = hovering && mouseY >= yi1 && mouseY < yi2;
-			context.fill(x1, yi1, x2, yi2, RenderUtils.toIntColor(
+			extractor.fill(x1, yi1, x2, yi2, RenderUtils.toIntColor(
 				GUI.getBgColor(), GUI.getOpacity() * (hValue ? 1.5F : 1)));
 			
-			context.guiRenderState.up();
-			context.text(WurstFont.get(), value.toString(), x1 + 2, yi1 + 2,
+			extractor.guiRenderState.up();
+			extractor.text(WurstFont.get(), value.toString(), x1 + 2, yi1 + 2,
 				GUI.getTxtColor(), false);
 		}
 		
-		context.disableScissor();
+		extractor.disableScissor();
 		
 		// scroll indicator
 		int maxScroll = getMaxScroll();
@@ -112,14 +112,14 @@ public final class ComboBoxPopup<T extends Enum<T>> extends Popup
 				/ (getHeight() + maxScroll)));
 			int barY = y1
 				+ (int)((long)(getHeight() - barHeight) * -scroll / maxScroll);
-			context.fill(x2 - 3, barY, x2 - 1, barY + barHeight,
+			extractor.fill(x2 - 3, barY, x2 - 1, barY + barHeight,
 				RenderUtils.toIntColor(GUI.getAcColor(), 0.75F));
 		}
 		
 		// The border goes on top, so the entries can't cover its right and
 		// bottom edges when the opacity is high.
-		context.guiRenderState.up();
-		RenderUtils.drawBorder2D(context, x1, y1, x2, y2,
+		extractor.guiRenderState.up();
+		RenderUtils.drawBorder2D(extractor, x1, y1, x2, y2,
 			RenderUtils.toIntColor(GUI.getAcColor(), 0.5F));
 	}
 	

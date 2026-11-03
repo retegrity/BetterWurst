@@ -39,7 +39,6 @@ import net.wurstclient.util.BlockUtils;
 import net.wurstclient.util.FaceAimPoint;
 import net.wurstclient.util.PlaceRotationGuard;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 import net.wurstclient.util.JumpUtils;
 
 @SearchTags({"ScaffoldWalk", "scaffold walk", "bridge", "tower", "auto bridge"})
@@ -413,7 +412,7 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 		}
 		float yaw = bridgeYaw + bridgeYawOffset;
 		
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 face = placement.hitVec();
 		Vec3 normal = Vec3.atLowerCornerOf(placement.side().getUnitVec3i());
 		Vec3 moveDir = new Vec3(movement.x, 0, movement.z).normalize();

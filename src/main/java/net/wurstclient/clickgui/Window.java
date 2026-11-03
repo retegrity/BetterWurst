@@ -10,7 +10,6 @@ package net.wurstclient.clickgui;
 import java.util.ArrayList;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.util.Mth;
 import net.wurstclient.WurstClient;
 import net.wurstclient.util.WurstFont;
 
@@ -74,7 +73,7 @@ public class Window
 			return x;
 		
 		int scaledWidth = WurstClient.MC.getWindow().getGuiScaledWidth();
-		return Mth.clamp(x, -width + 1, scaledWidth - 1);
+		return Math.clamp(x, -width + 1, scaledWidth - 1);
 	}
 	
 	/**
@@ -101,7 +100,7 @@ public class Window
 			return y;
 		
 		int scaledHeight = WurstClient.MC.getWindow().getGuiScaledHeight();
-		return Mth.clamp(y, -12, scaledHeight - 1);
+		return Math.clamp(y, -12, scaledHeight - 1);
 	}
 	
 	/**

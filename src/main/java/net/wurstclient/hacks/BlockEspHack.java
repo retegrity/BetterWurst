@@ -51,7 +51,6 @@ import net.wurstclient.util.ChatUtils;
 import net.wurstclient.util.EasyVertexBuffer;
 import net.wurstclient.util.RegionPos;
 import net.wurstclient.util.RenderUtils;
-import net.wurstclient.util.RotationUtils;
 import net.wurstclient.util.chunk.ChunkSearcher.Result;
 import net.wurstclient.util.chunk.ChunkSearcherCoordinator;
 
@@ -295,7 +294,7 @@ public final class BlockEspHack extends Hack implements UpdateListener,
 	private void startBuild(int version)
 	{
 		builtVersion = version;
-		BlockPos eyesPos = BlockPos.containing(RotationUtils.getEyesPos());
+		BlockPos eyesPos = BlockPos.containing(MC.player.getEyePosition());
 		int maxBlocks = limit.getValueLog();
 		List<List<Result>> matches = coordinator.getMatchLists();
 		

@@ -36,7 +36,7 @@ public abstract class Popup
 		
 	}
 	
-	public abstract void render(GuiGraphicsExtractor context, int mouseX,
+	public abstract void render(GuiGraphicsExtractor extractor, int mouseX,
 		int mouseY);
 	
 	public abstract int getDefaultWidth();
