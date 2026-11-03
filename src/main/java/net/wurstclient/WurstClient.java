@@ -27,6 +27,7 @@ import net.wurstclient.events.ChatOutputListener;
 import net.wurstclient.events.GUIRenderListener;
 import net.wurstclient.events.KeyPressListener;
 import net.wurstclient.events.MouseButtonPressListener;
+import net.wurstclient.events.PacketOutputListener;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.hack.HackList;
@@ -127,6 +128,7 @@ public enum WurstClient
 		eventManager.add(GUIRenderListener.class, hud);
 		
 		rotationFaker = new RotationFaker();
+		eventManager.add(PacketOutputListener.class, rotationFaker);
 		
 		updater = new WurstUpdater();
 		eventManager.add(UpdateListener.class, updater);
