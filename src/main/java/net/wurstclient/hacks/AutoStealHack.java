@@ -250,9 +250,8 @@ public final class AutoStealHack extends Hack
 		if(stack.isEmpty())
 			return null;
 		
-		Item item = stack.getItem();
-		EquipmentSlot slot = ItemUtils.getArmorSlot(item);
-		if(slot != null && ItemUtils.getArmorPoints(item) > 0)
+		EquipmentSlot slot = ItemUtils.getArmorSlot(stack);
+		if(slot != null && ItemUtils.getArmorPoints(stack).orElse(0) > 0)
 			switch(slot)
 			{
 				case HEAD:
@@ -281,20 +280,18 @@ public final class AutoStealHack extends Hack
 	
 	private double getGearScore(GearType type, ItemStack stack)
 	{
-		Item item = stack.getItem();
-		
 		if(type.armor)
 		{
-			double armor = ItemUtils.getArmorPoints(item);
-			double toughness = ItemUtils.getToughness(item);
+			double armor = ItemUtils.getArmorPoints(stack).orElse(0);
+			double toughness = ItemUtils.getToughness(stack).orElse(0);
 			int protection = getEnchantLevel(Enchantments.PROTECTION, stack);
 			return armor * 5 + protection * 3 + toughness;
 		}
 		
 		// Attack damage reflects the material tier for all tools, and keeps
 		// gold (fast but weak) from outranking diamond.
-		double damage = ItemUtils.calculateModifiedAttribute(item,
-			Attributes.ATTACK_DAMAGE, 1, EquipmentSlot.MAINHAND);
+		double damage = ItemUtils.calculateModifiedAttribute(stack,
+			Attributes.ATTACK_DAMAGE, EquipmentSlot.MAINHAND).orElse(1);
 		
 		int enchant = type == GearType.SWORD
 			? getEnchantLevel(Enchantments.SHARPNESS, stack)

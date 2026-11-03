@@ -111,7 +111,7 @@ public final class WurstOptionsOtf extends OtherFeature
 			.createNarration(sup -> narration).tooltip(tooltip);
 	}
 	
-	public void drawWurstLogoOnButton(GuiGraphicsExtractor context,
+	public void drawWurstLogoOnButton(GuiGraphicsExtractor extractor,
 		Button wurstOptionsButton)
 	{
 		if(wurstOptionsButton == null)
@@ -125,9 +125,9 @@ public final class WurstOptionsOtf extends OtherFeature
 		int fh = 16;
 		float u = 0;
 		float v = 0;
-		context.guiRenderState.up();
-		context.blit(RenderPipelines.GUI_TEXTURED, WURST_TEXTURE, x, y, u, v, w,
-			h, fw, fh);
+		extractor.guiRenderState.up();
+		extractor.blit(RenderPipelines.GUI_TEXTURED, WURST_TEXTURE, x, y, u, v,
+			w, h, fw, fh);
 	}
 	
 	private enum Location

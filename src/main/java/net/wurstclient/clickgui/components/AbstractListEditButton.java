@@ -32,7 +32,7 @@ public abstract class AbstractListEditButton extends Component
 	
 	@Override
 	public void handleMouseClick(double mouseX, double mouseY, int mouseButton,
-		MouseButtonEvent context)
+		MouseButtonEvent extractor)
 	{
 		if(mouseButton != GLFW.GLFW_MOUSE_BUTTON_LEFT)
 			return;
@@ -44,7 +44,7 @@ public abstract class AbstractListEditButton extends Component
 	}
 	
 	@Override
-	public void render(GuiGraphicsExtractor context, int mouseX, int mouseY,
+	public void render(GuiGraphicsExtractor extractor, int mouseX, int mouseY,
 		float partialTicks)
 	{
 		int x1 = getX();
@@ -61,18 +61,18 @@ public abstract class AbstractListEditButton extends Component
 			GUI.setTooltip(getSetting().getWrappedDescription(200));
 		
 		// background
-		context.fill(x1, y1, x3, y2, getFillColor(false));
+		extractor.fill(x1, y1, x3, y2, getFillColor(false));
 		
 		// button
-		context.fill(x3, y1, x2, y2, getFillColor(hBox));
+		extractor.fill(x3, y1, x2, y2, getFillColor(hBox));
 		int outlineColor = RenderUtils.toIntColor(GUI.getAcColor(), 0.5F);
-		RenderUtils.drawBorder2D(context, x3, y1, x2, y2, outlineColor);
+		RenderUtils.drawBorder2D(extractor, x3, y1, x2, y2, outlineColor);
 		
 		// text
 		int txtColor = GUI.getTxtColor();
-		context.guiRenderState.up();
-		context.text(WurstFont.get(), getText(), x1, y1 + 2, txtColor, false);
-		context.text(WurstFont.get(), buttonText, x3 + 2, y1 + 2, txtColor,
+		extractor.guiRenderState.up();
+		extractor.text(WurstFont.get(), getText(), x1, y1 + 2, txtColor, false);
+		extractor.text(WurstFont.get(), buttonText, x3 + 2, y1 + 2, txtColor,
 			false);
 	}
 	

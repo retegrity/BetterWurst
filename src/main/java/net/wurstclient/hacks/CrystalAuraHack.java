@@ -45,7 +45,6 @@ import net.wurstclient.util.EntityUtils;
 import net.wurstclient.util.FaceAimPoint;
 import net.wurstclient.util.PlaceRotationGuard;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"crystal aura"})
 public final class CrystalAuraHack extends Hack implements UpdateListener
@@ -294,7 +293,7 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 	private Optional<EndCrystal> getBestCrystal(AABB targetBox)
 	{
 		double rangeSq = range.getValueSq();
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		
 		return EntityUtils.getAliveEntities(EndCrystal.class)
 			.filter(e -> e.getId() != lastBrokenId)
@@ -361,7 +360,7 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 	
 	private Action placeAction(BlockPos base)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Direction best = null;
 		double bestDistSq = Double.MAX_VALUE;
 		
@@ -410,7 +409,7 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 	private Action breakAction(EndCrystal crystal)
 	{
 		BlockPos base = crystal.blockPosition().below();
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		
 		// looking at the top of the block below the crystal also looks at
 		// the crystal, so the aim doesn't have to flick between them
@@ -426,7 +425,7 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 	
 	private Action hitAction()
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		return new Action(ActionType.HIT, null, null,
 			getClosestPoint(target.getBoundingBox(), eyes), target);
 	}
@@ -497,7 +496,7 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 	 */
 	private boolean looksAt(Entity entity, double reach)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 end = eyes.add(getServerLookVec().scale(reach));
 		Optional<Vec3> entityHit = entity.getBoundingBox().clip(eyes, end);
 		if(entityHit.isEmpty())
@@ -511,7 +510,7 @@ public final class CrystalAuraHack extends Hack implements UpdateListener
 	
 	private BlockHitResult raycastBlocks(double reach)
 	{
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		return BlockUtils.raycast(eyes,
 			eyes.add(getServerLookVec().scale(reach)));
 	}

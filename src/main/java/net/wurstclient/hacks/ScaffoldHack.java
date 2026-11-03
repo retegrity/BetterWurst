@@ -413,7 +413,7 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 		}
 		float yaw = bridgeYaw + bridgeYawOffset;
 		
-		Vec3 eyes = RotationUtils.getEyesPos();
+		Vec3 eyes = MC.player.getEyePosition();
 		Vec3 face = placement.hitVec();
 		Vec3 normal = Vec3.atLowerCornerOf(placement.side().getUnitVec3i());
 		Vec3 moveDir = new Vec3(movement.x, 0, movement.z).normalize();

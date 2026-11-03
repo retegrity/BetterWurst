@@ -28,7 +28,6 @@ import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.CommonColors;
-import net.minecraft.util.Mth;
 import net.wurstclient.Feature;
 import net.wurstclient.WurstClient;
 import net.wurstclient.clickgui.ClickGui;
@@ -233,9 +232,9 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 	}
 	
 	@Override
-	protected void onKeyPress(KeyEvent context)
+	protected void onKeyPress(KeyEvent extractor)
 	{
-		int keyCode = context.key();
+		int keyCode = extractor.key();
 		
 		if(keyCode == GLFW.GLFW_KEY_ESCAPE
 			|| keyCode == GLFW.GLFW_KEY_BACKSPACE)
@@ -243,11 +242,11 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 	}
 	
 	@Override
-	protected void onMouseClick(MouseButtonEvent context)
+	protected void onMouseClick(MouseButtonEvent extractor)
 	{
-		double x = context.x();
-		double y = context.y();
-		int button = context.button();
+		double x = extractor.x();
+		double y = extractor.y();
+		int button = extractor.button();
 		
 		// popups
 		if(WurstClient.INSTANCE.getGui().handlePopupMouseClick(x, y, button))
@@ -280,7 +279,7 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 		// component settings
 		WurstClient.INSTANCE.getGui().handleNavigatorMouseClick(
 			x - middleX + 154, y - 60 - scroll - windowComponentY, button,
-			window, context);
+			window, extractor);
 	}
 	
 	private void goBack()
@@ -311,15 +310,15 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 	}
 	
 	@Override
-	protected void onRender(GuiGraphicsExtractor context, int mouseX,
+	protected void onRender(GuiGraphicsExtractor extractor, int mouseX,
 		int mouseY, float partialTicks)
 	{
-		Matrix3x2fStack matrixStack = context.pose();
+		Matrix3x2fStack matrixStack = extractor.pose();
 		ClickGui gui = WurstClient.INSTANCE.getGui();
 		int txtColor = gui.getTxtColor();
 		
 		// title bar
-		context.centeredText(WurstFont.get(), feature.getName(), middleX, 32,
+		extractor.centeredText(WurstFont.get(), feature.getName(), middleX, 32,
 			txtColor);
 		
 		// background
@@ -333,13 +332,13 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 		int windowY1 = bgy1 + scroll + windowComponentY;
 		int windowY2 = windowY1 + window.getInnerHeight();
 		
-		context.fill(bgx1, bgy1, bgx2, Mth.clamp(windowY1, bgy1, bgy3),
+		extractor.fill(bgx1, bgy1, bgx2, Math.clamp(windowY1, bgy1, bgy3),
 			getBackgroundColor());
-		context.fill(bgx1, Mth.clamp(windowY2, bgy1, bgy3), bgx2, bgy2,
+		extractor.fill(bgx1, Math.clamp(windowY2, bgy1, bgy3), bgx2, bgy2,
 			getBackgroundColor());
-		RenderUtils.drawBoxShadow2D(context, bgx1, bgy1, bgx2, bgy2);
+		RenderUtils.drawBoxShadow2D(extractor, bgx1, bgy1, bgx2, bgy2);
 		
-		context.enableScissor(bgx1, bgy1, bgx2, bgy3);
+		extractor.enableScissor(bgx1, bgy1, bgx2, bgy3);
 		
 		// settings
 		gui.setTooltip("");
@@ -361,8 +360,8 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 			// window background
 			// left & right
 			int bgColor = getBackgroundColor();
-			context.fill(x1, y3, x3, y2, bgColor);
-			context.fill(x5, y3, x2, y2, bgColor);
+			extractor.fill(x1, y3, x3, y2, bgColor);
+			extractor.fill(x5, y3, x2, y2, bgColor);
 			
 			// window background
 			// between children
@@ -377,7 +376,7 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 				if(yc2 > bgy3 - windowY1)
 					break;
 				
-				context.fill(xc1, yc1, xc2, yc2, bgColor);
+				extractor.fill(xc1, yc1, xc2, yc2, bgColor);
 			}
 			
 			// window background
@@ -392,7 +391,7 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 				yc1 = lastChild.getY() + lastChild.getHeight();
 			}
 			int yc2 = yc1 + 2;
-			context.fill(xc1, yc1, xc2, yc2, bgColor);
+			extractor.fill(xc1, yc1, xc2, yc2, bgColor);
 		}
 		
 		for(int i = 0; i < window.countChildren(); i++)
@@ -403,7 +402,7 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 			if(child.getY() > bgy3 - windowY1)
 				break;
 			
-			child.render(context, mouseX - bgx1, mouseY - windowY1,
+			child.render(extractor, mouseX - bgx1, mouseY - windowY1,
 				partialTicks);
 		}
 		matrixStack.popMatrix();
@@ -432,12 +431,12 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 			float[] rgb = buttonData.color.getColorComponents(null);
 			
 			// button
-			drawBox(context, x1, y1, x2, y2,
+			drawBox(extractor, x1, y1, x2, y2,
 				RenderUtils.toIntColor(rgb, alpha));
 			
 			// text
-			context.guiRenderState.up();
-			context.centeredText(WurstFont.get(), buttonData.buttonText,
+			extractor.guiRenderState.up();
+			extractor.centeredText(WurstFont.get(), buttonData.buttonText,
 				(x1 + x2) / 2, y1 + (buttonData.height - 10) / 2 + 1,
 				buttonData.isLocked() ? WurstColors.VERY_LIGHT_GRAY
 					: buttonData.textColor);
@@ -445,15 +444,15 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 		
 		// text
 		int textY = bgy1 + scroll + 2;
-		context.guiRenderState.up();
+		extractor.guiRenderState.up();
 		for(String line : text.split("\n"))
 		{
-			context.text(WurstFont.get(), line, bgx1 + 2, textY, txtColor,
+			extractor.text(WurstFont.get(), line, bgx1 + 2, textY, txtColor,
 				false);
 			textY += WurstFont.get().lineHeight;
 		}
 		
-		context.disableScissor();
+		extractor.disableScissor();
 		
 		// buttons below scissor box
 		for(AbstractWidget button : Screens.getWidgets(this))
@@ -474,20 +473,20 @@ public final class NavigatorFeatureScreen extends NavigatorScreen
 				buttonColor = hovering ? 0x40606060 : 0x40404040;
 			
 			// button
-			drawBox(context, x1, y1, x2, y2, buttonColor);
+			drawBox(extractor, x1, y1, x2, y2, buttonColor);
 			
 			// text
 			String buttonText = button.getMessage().getString();
-			context.guiRenderState.up();
-			context.text(WurstFont.get(), buttonText,
+			extractor.guiRenderState.up();
+			extractor.text(WurstFont.get(), buttonText,
 				(x1 + x2 - WurstFont.get().width(buttonText)) / 2, y1 + 5,
 				txtColor, false);
 		}
 		
 		// popups & tooltip
 		gui.closePopupsOutsideArea(window, bgx1, bgy1, bgx2, bgy3);
-		gui.renderPopups(context, mouseX, mouseY);
-		gui.renderTooltip(context, mouseX, mouseY);
+		gui.renderPopups(extractor, mouseX, mouseY);
+		gui.renderTooltip(extractor, mouseX, mouseY);
 	}
 	
 	@Override

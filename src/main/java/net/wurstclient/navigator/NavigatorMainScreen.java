@@ -77,10 +77,10 @@ public final class NavigatorMainScreen extends NavigatorScreen
 	}
 	
 	@Override
-	protected void onKeyPress(KeyEvent context)
+	protected void onKeyPress(KeyEvent extractor)
 	{
-		int keyCode = context.key();
-		boolean hasShiftDown = context.hasShiftDown();
+		int keyCode = extractor.key();
+		boolean hasShiftDown = extractor.hasShiftDown();
 		
 		if(keyCode == GLFW.GLFW_KEY_ENTER)
 			leftClick(selectedFeature);
@@ -111,10 +111,10 @@ public final class NavigatorMainScreen extends NavigatorScreen
 	}
 	
 	@Override
-	protected void onMouseClick(MouseButtonEvent context)
+	protected void onMouseClick(MouseButtonEvent extractor)
 	{
-		int button = context.button();
-		boolean hasShiftDown = context.hasShiftDown();
+		int button = extractor.button();
+		boolean hasShiftDown = extractor.hasShiftDown();
 		
 		if(clickTimer != -1)
 			return;
@@ -219,7 +219,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 	}
 	
 	@Override
-	protected void onRender(GuiGraphicsExtractor context, int mouseX,
+	protected void onRender(GuiGraphicsExtractor extractor, int mouseX,
 		int mouseY, float partialTicks)
 	{
 		ClickGui gui = WurstClient.INSTANCE.getGui();
@@ -231,9 +231,10 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		// search bar
 		if(!clickTimerRunning)
 		{
-			context.text(WurstFont.get(), "Search: ", middleX - 150, 32,
+			extractor.text(WurstFont.get(), "Search: ", middleX - 150, 32,
 				txtColor);
-			searchBar.extractRenderState(context, mouseX, mouseY, partialTicks);
+			searchBar.extractRenderState(extractor, mouseX, mouseY,
+				partialTicks);
 		}
 		
 		// feature list
@@ -241,7 +242,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		if(!clickTimerRunning)
 			hoveredFeature = -1;
 		
-		context.enableScissor(0, 59, width, height - 42);
+		extractor.enableScissor(0, 59, width, height - 42);
 		
 		for(int i = Math.max(-scroll * 3 / 20 - 3, 0); i < navigatorDisplayList
 			.size(); i++)
@@ -254,16 +255,16 @@ public final class NavigatorMainScreen extends NavigatorScreen
 			if(featureY > height - 40)
 				break;
 			
-			renderFeature(context, mouseX, mouseY, partialTicks, i, featureX,
+			renderFeature(extractor, mouseX, mouseY, partialTicks, i, featureX,
 				featureY);
 		}
 		
-		context.disableScissor();
+		extractor.disableScissor();
 		
 		// tooltip
 		if(tooltip != null)
 		{
-			context.guiRenderState.up();
+			extractor.guiRenderState.up();
 			
 			String[] lines = tooltip.split("\n");
 			Font tr = WurstFont.get();
@@ -287,21 +288,21 @@ public final class NavigatorMainScreen extends NavigatorScreen
 			// background
 			int bgColor = RenderUtils.toIntColor(gui.getBgColor(),
 				gui.getTooltipOpacity());
-			context.fill(xt1, yt1, xt2, yt2, bgColor);
+			extractor.fill(xt1, yt1, xt2, yt2, bgColor);
 			
 			// outline
 			int acColor = RenderUtils.toIntColor(gui.getAcColor(), 0.5F);
-			RenderUtils.drawBorder2D(context, xt1, yt1, xt2, yt2, acColor);
+			RenderUtils.drawBorder2D(extractor, xt1, yt1, xt2, yt2, acColor);
 			
 			// text
-			context.guiRenderState.up();
+			extractor.guiRenderState.up();
 			for(int i = 0; i < lines.length; i++)
-				context.text(tr, lines[i], xt1 + 2, yt1 + 2 + i * tr.lineHeight,
-					txtColor, false);
+				extractor.text(tr, lines[i], xt1 + 2,
+					yt1 + 2 + i * tr.lineHeight, txtColor, false);
 		}
 	}
 	
-	private void renderFeature(GuiGraphicsExtractor context, int mouseX,
+	private void renderFeature(GuiGraphicsExtractor extractor, int mouseX,
 		int mouseY, float partialTicks, int i, int x, int y)
 	{
 		ClickGui gui = WurstClient.INSTANCE.getGui();
@@ -339,7 +340,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 			area.height =
 				(int)(area.height * antiFactor + (height - 103) * factor);
 			
-			drawBackgroundBox(context, area.x, area.y, area.x + area.width,
+			drawBackgroundBox(extractor, area.x, area.y, area.x + area.width,
 				area.y + area.height);
 			return;
 		}
@@ -366,7 +367,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		int featColor = RenderUtils.toIntColor(
 			feature.isEnabled() ? new float[]{0, 1, 0} : gui.getBgColor(),
 			gui.getOpacity() * (renderAsHovered ? 1.5F : 1));
-		drawBox(context, area.x, area.y, area.x + area.width,
+		drawBox(extractor, area.x, area.y, area.x + area.width,
 			area.y + area.height, featColor);
 		
 		// separator
@@ -374,16 +375,16 @@ public final class NavigatorMainScreen extends NavigatorScreen
 		int by1 = area.y + 2;
 		int by2 = by1 + area.height - 4;
 		int sepColor = RenderUtils.toIntColor(gui.getAcColor(), 0.5F);
-		RenderUtils.drawLine2D(context, bx1, by1, bx1, by2, sepColor);
+		RenderUtils.drawLine2D(extractor, bx1, by1, bx1, by2, sepColor);
 		
 		// hovering
 		if(hovering)
 			hoveringArrow = mouseX >= bx1;
 		
-		context.guiRenderState.up();
+		extractor.guiRenderState.up();
 		
 		// arrow
-		ClickGuiIcons.drawMinimizeArrow(context, bx1 + 2, area.y + 2.5F,
+		ClickGuiIcons.drawMinimizeArrow(extractor, bx1 + 2, area.y + 2.5F,
 			area.x + area.width - 2, area.y + area.height - 3, hovering, true);
 		
 		// text
@@ -394,7 +395,7 @@ public final class NavigatorMainScreen extends NavigatorScreen
 			int bx = area.x + 4;
 			int by = area.y + 4;
 			int txtColor = gui.getTxtColor();
-			context.text(tr, buttonText, bx, by, txtColor, false);
+			extractor.text(tr, buttonText, bx, by, txtColor, false);
 		}
 	}
 	

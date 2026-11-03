@@ -35,7 +35,7 @@ public final class HackListHUD implements UpdateListener
 		WurstClient.INSTANCE.getEventManager().add(UpdateListener.class, this);
 	}
 	
-	public void render(GuiGraphicsExtractor context, float partialTicks)
+	public void render(GuiGraphicsExtractor extractor, float partialTicks)
 	{
 		if(otf.getMode() == Mode.HIDDEN)
 			return;
@@ -60,16 +60,16 @@ public final class HackListHUD implements UpdateListener
 		int height = posY + activeHax.size() * 9;
 		
 		ArrayList<Line> lines = new ArrayList<>();
-		if(otf.getMode() == Mode.COUNT || height > context.guiHeight())
+		if(otf.getMode() == Mode.COUNT || height > extractor.guiHeight())
 			lines.add(getCounterLine());
 		else if(otf.isAnimations())
 			for(HackListEntry e : activeHax)
-				lines.add(getLineWithOffset(context, e, partialTicks));
+				lines.add(getLineWithOffset(extractor, e, partialTicks));
 		else
 			for(HackListEntry e : activeHax)
-				lines.add(getLine(context, e.hack.getRenderName(), 0, 1));
+				lines.add(getLine(extractor, e.hack.getRenderName(), 0, 1));
 			
-		drawLines(context, lines);
+		drawLines(extractor, lines);
 	}
 	
 	private Line getCounterLine()
@@ -79,13 +79,13 @@ public final class HackListHUD implements UpdateListener
 		return new Line(s, 0, 1);
 	}
 	
-	private Line getLine(GuiGraphicsExtractor context, String s, float offset,
+	private Line getLine(GuiGraphicsExtractor extractor, String s, float offset,
 		float opacity)
 	{
 		return new Line(s, offset, opacity);
 	}
 	
-	private Line getLineWithOffset(GuiGraphicsExtractor context,
+	private Line getLineWithOffset(GuiGraphicsExtractor extractor,
 		HackListEntry e, float partialTicks)
 	{
 		float offset =
@@ -97,13 +97,13 @@ public final class HackListHUD implements UpdateListener
 	 * Draws the background and outline (like Meteor's active modules list)
 	 * first, then the text on top.
 	 */
-	private void drawLines(GuiGraphicsExtractor context, List<Line> lines)
+	private void drawLines(GuiGraphicsExtractor extractor, List<Line> lines)
 	{
 		Font tr = WurstFont.get();
 		boolean left = otf.getPosition() == Position.LEFT;
 		boolean rainbow = otf.isRainbow();
 		double seconds = System.nanoTime() / 1e9;
-		int screenWidth = context.guiWidth();
+		int screenWidth = extractor.guiWidth();
 		int offsetX = otf.getHorizontalOffset();
 		
 		int size = lines.size();
@@ -133,7 +133,7 @@ public final class HackListHUD implements UpdateListener
 			for(int i = 0; i < size; i++)
 			{
 				int alpha = (int)((bg >>> 24) * lines.get(i).opacity());
-				context.fill(x1[i], y[i], x2[i], y[i] + 9,
+				extractor.fill(x1[i], y[i], x2[i], y[i] + 9,
 					alpha << 24 | bg & 0xFFFFFF);
 			}
 		}
@@ -148,15 +148,15 @@ public final class HackListHUD implements UpdateListener
 				int color = outlineColor(rainbow, colors[i], lines.get(i));
 				int top = y[i];
 				int bottom = y[i] + 9;
-				context.fill(x1[i] - w, top, x1[i], bottom, color);
-				context.fill(x2[i], top, x2[i] + w, bottom, color);
+				extractor.fill(x1[i] - w, top, x1[i], bottom, color);
+				extractor.fill(x2[i], top, x2[i] + w, bottom, color);
 				
 				if(i == 0)
-					context.fill(x1[i] - w, top - w, x2[i] + w, top, color);
+					extractor.fill(x1[i] - w, top - w, x2[i] + w, top, color);
 				
 				if(i == size - 1)
 				{
-					context.fill(x1[i] - w, bottom, x2[i] + w, bottom + w,
+					extractor.fill(x1[i] - w, bottom, x2[i] + w, bottom + w,
 						color);
 					continue;
 				}
@@ -165,15 +165,15 @@ public final class HackListHUD implements UpdateListener
 				int nx1 = x1[i + 1];
 				int nx2 = x2[i + 1];
 				if(nx1 != x1[i])
-					context.fill(Math.min(x1[i], nx1) - w, bottom,
+					extractor.fill(Math.min(x1[i], nx1) - w, bottom,
 						Math.max(x1[i], nx1), bottom + w, color);
 				if(nx2 != x2[i])
-					context.fill(Math.min(x2[i], nx2), bottom,
+					extractor.fill(Math.min(x2[i], nx2), bottom,
 						Math.max(x2[i], nx2) + w, bottom + w, color);
 			}
 		}
 		
-		context.guiRenderState.up();
+		extractor.guiRenderState.up();
 		
 		// text
 		for(int i = 0; i < size; i++)
@@ -183,12 +183,12 @@ public final class HackListHUD implements UpdateListener
 			int posX = x1[i] + 1;
 			if(otf.isShadow())
 			{
-				context.text(tr, line.text(), posX + 1, y[i] + 2,
+				extractor.text(tr, line.text(), posX + 1, y[i] + 2,
 					0x04000000 | alpha, false);
-				context.guiRenderState.up();
+				extractor.guiRenderState.up();
 			}
 			
-			context.text(tr, line.text(), posX, y[i] + 1, colors[i] | alpha,
+			extractor.text(tr, line.text(), posX, y[i] + 1, colors[i] | alpha,
 				false);
 		}
 	}
