@@ -10,15 +10,19 @@ package net.wurstclient;
 import java.util.Random;
 
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.phys.Vec3;
+import net.wurstclient.events.PacketOutputListener;
 import net.wurstclient.events.PostMotionListener;
 import net.wurstclient.events.PreMotionListener;
 import net.wurstclient.util.Rotation;
 import net.wurstclient.util.RotationUtils;
 
 public final class RotationFaker
-	implements PreMotionListener, PostMotionListener
+	implements PreMotionListener, PostMotionListener, PacketOutputListener
 {
 	private boolean fakeRotation;
 	private float serverYaw;
@@ -60,6 +64,12 @@ public final class RotationFaker
 	private float sentYawDelta;
 	private float sentPitchDelta;
 	
+	// the rotation in a use item packet, which the next movement packet has
+	// to send too, see onSentPacket()
+	private boolean useRotationLocked;
+	private float useYaw;
+	private float usePitch;
+	
 	@Override
 	public void onPreMotion()
 	{
@@ -67,7 +77,20 @@ public final class RotationFaker
 		
 		float yaw;
 		float pitch;
-		if(fakeRotation)
+		if(useRotationLocked)
+		{
+			yaw = useYaw;
+			pitch = usePitch;
+			useRotationLocked = false;
+			
+			// continue turning from here next tick
+			if(managed)
+			{
+				managedYaw = yaw;
+				managedPitch = pitch;
+			}
+			
+		}else if(fakeRotation)
 		{
 			yaw = serverYaw;
 			pitch = serverPitch;
@@ -89,6 +112,60 @@ public final class RotationFaker
 		realPitch = player.getXRot();
 		player.setYRot(yaw);
 		player.setXRot(pitch);
+	}
+	
+	/**
+	 * Grim's BadPacketsJ flags use item packets whose rotation doesn't match
+	 * the next movement packet, but faked rotations are only applied to the
+	 * movement packet. So this makes the movement packet send the same
+	 * rotation as the use item packet.
+	 */
+	@Override
+	public void onSentPacket(PacketOutputEvent event)
+	{
+		if(!(event.getPacket() instanceof ServerboundUseItemPacket packet))
+			return;
+		
+		// in a vehicle, the movement packet always sends the camera rotation
+		LocalPlayer player = WurstClient.MC.player;
+		if(player == null || player.isPassenger())
+			return;
+		
+		float yaw = packet.getYRot();
+		float pitch = packet.getXRot();
+		
+		// Use packets before the same movement packet need the same
+		// rotation. Otherwise, use the managed rotation, so it doesn't snap
+		// to the camera and back. Only for items where the direction doesn't
+		// matter, since the server turns you to this rotation before using
+		// the item, so e.g. a pearl would fly the way Killaura is looking.
+		if(useRotationLocked)
+		{
+			yaw = useYaw;
+			pitch = usePitch;
+			
+		}else if(managed
+			&& !isAimedItem(player.getItemInHand(packet.getHand())))
+		{
+			yaw = managedYaw;
+			pitch = managedPitch;
+		}
+		
+		if(yaw != packet.getYRot() || pitch != packet.getXRot())
+			event.setPacket(new ServerboundUseItemPacket(packet.getHand(),
+				packet.getSequence(), yaw, pitch));
+		
+		useRotationLocked = true;
+		useYaw = yaw;
+		usePitch = pitch;
+	}
+	
+	private boolean isAimedItem(ItemStack stack)
+	{
+		ItemUseAnimation animation = stack.getUseAnimation();
+		return animation != ItemUseAnimation.EAT
+			&& animation != ItemUseAnimation.DRINK
+			&& animation != ItemUseAnimation.BLOCK;
 	}
 	
 	private void trackSentRotation(float yaw, float pitch)
@@ -409,7 +486,7 @@ public final class RotationFaker
 	 */
 	public boolean isMovementCorrectionActive()
 	{
-		return (fakeRotation || managed)
+		return (fakeRotation || managed || useRotationLocked)
 			&& WurstClient.INSTANCE.getHax().movementFixHack.isEnabled();
 	}
 	
@@ -419,6 +496,9 @@ public final class RotationFaker
 	 */
 	public float getMovementYaw()
 	{
+		if(useRotationLocked)
+			return useYaw;
+		
 		return fakeRotation ? serverYaw : managedYaw;
 	}
 	
