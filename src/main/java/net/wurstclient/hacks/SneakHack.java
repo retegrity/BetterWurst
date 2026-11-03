@@ -7,12 +7,15 @@
  */
 package net.wurstclient.hacks;
 
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
 import net.minecraft.world.entity.player.Input;
 import net.wurstclient.Category;
 import net.wurstclient.SearchTags;
 import net.wurstclient.events.PacketOutputListener;
 import net.wurstclient.events.PreMotionListener;
+import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
 import net.wurstclient.mixinterface.IKeyMapping;
 import net.wurstclient.settings.CheckboxSetting;
@@ -20,7 +23,7 @@ import net.wurstclient.settings.EnumSetting;
 
 @SearchTags({"AutoSneaking"})
 public final class SneakHack extends Hack
-	implements PreMotionListener, PacketOutputListener
+	implements PreMotionListener, UpdateListener, PacketOutputListener
 {
 	private final EnumSetting<SneakMode> mode = new EnumSetting<>("Mode",
 		"\u00a7lPacket\u00a7r mode makes it look like you're sneaking without slowing you down.\n"
@@ -37,6 +40,12 @@ public final class SneakHack extends Hack
 	
 	// whether the input sent to the server says that sneak is pressed
 	private boolean packetSneaking;
+	
+	// Ticks until telling the server again that you are sneaking, after it
+	// forgot. Waits a bit after right-clicking an entity, in case it was a
+	// vehicle that you are about to get into.
+	private int resyncTicks;
+	private LocalPlayer lastPlayer;
 	
 	public SneakHack()
 	{
@@ -56,7 +65,10 @@ public final class SneakHack extends Hack
 	protected void onEnable()
 	{
 		packetSneaking = false;
+		resyncTicks = 0;
+		lastPlayer = MC.player;
 		EVENTS.add(PreMotionListener.class, this);
+		EVENTS.add(UpdateListener.class, this);
 		EVENTS.add(PacketOutputListener.class, this);
 	}
 	
@@ -64,6 +76,7 @@ public final class SneakHack extends Hack
 	protected void onDisable()
 	{
 		EVENTS.remove(PreMotionListener.class, this);
+		EVENTS.remove(UpdateListener.class, this);
 		EVENTS.remove(PacketOutputListener.class, this);
 		
 		switch(mode.getSelected())
@@ -102,11 +115,35 @@ public final class SneakHack extends Hack
 			sneakKey.resetDownState();
 			break;
 		}
+	}
+	
+	/**
+	 * Unlike PreMotion, this also runs while you are in a vehicle.
+	 */
+	@Override
+	public void onUpdate()
+	{
+		// a new player after respawning, which the server doesn't see
+		// sneaking yet
+		if(MC.player != lastPlayer)
+		{
+			lastPlayer = MC.player;
+			resyncTicks = 1;
+		}
 		
 		// Sneaking in a vehicle makes the server dismount you, so don't
-		// tell it that you are sneaking there.
+		// tell it that you are sneaking there. Telling it the real keys
+		// again also makes sure that pressing sneak is a change that gets
+		// sent (and that ViaFabricPlus turns into a sneak packet).
 		boolean shouldPacketSneak =
 			mode.getSelected() == SneakMode.PACKET && !MC.player.isPassenger();
+		
+		// Re-sending the same input wouldn't be a change for
+		// ViaFabricPlus, so send the real keys first and start sneaking
+		// again on the next tick.
+		if(resyncTicks > 0 && --resyncTicks == 0)
+			shouldPacketSneak = false;
+		
 		if(shouldPacketSneak != packetSneaking)
 		{
 			packetSneaking = shouldPacketSneak;
@@ -123,8 +160,18 @@ public final class SneakHack extends Hack
 	@Override
 	public void onSentPacket(PacketOutputEvent event)
 	{
-		if(!packetSneaking || !(event
-			.getPacket() instanceof ServerboundPlayerInputPacket packet))
+		if(!packetSneaking)
+			return;
+			
+		// Right-clicking an entity sets your sneaking on the server to
+		// whether you are really sneaking, which is false here.
+		if(event.getPacket() instanceof ServerboundInteractPacket)
+		{
+			resyncTicks = 10;
+			return;
+		}
+		
+		if(!(event.getPacket() instanceof ServerboundPlayerInputPacket packet))
 			return;
 		
 		Input input = packet.input();
