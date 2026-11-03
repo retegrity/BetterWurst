@@ -56,7 +56,6 @@ import net.wurstclient.util.BlockBreaker.BlockBreakingParams;
 import net.wurstclient.util.BlockUtils;
 import net.wurstclient.util.OverlayRenderer;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"tree bot"})
 @DontSaveState

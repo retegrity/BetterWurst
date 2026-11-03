@@ -90,8 +90,8 @@ public final class ColorComponent extends Component
 		int txtColor = GUI.getTxtColor();
 		extractor.guiRenderState.up();
 		extractor.text(WurstFont.get(), name, x1, y1 + 2, txtColor, false);
-		extractor.text(WurstFont.get(), value, x2 - valueWidth, y1 + 2, txtColor,
-			false);
+		extractor.text(WurstFont.get(), value, x2 - valueWidth, y1 + 2,
+			txtColor, false);
 	}
 	
 	private String getColorTooltip()

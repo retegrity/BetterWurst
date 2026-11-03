@@ -161,8 +161,8 @@ public final class SliderComponent extends Component
 		int valueWidth = WurstFont.get().width(value);
 		int txtColor = GUI.getTxtColor();
 		extractor.text(WurstFont.get(), name, x1, y1 + 2, txtColor, false);
-		extractor.text(WurstFont.get(), value, x2 - valueWidth, y1 + 2, txtColor,
-			false);
+		extractor.text(WurstFont.get(), value, x2 - valueWidth, y1 + 2,
+			txtColor, false);
 	}
 	
 	private String getTextTooltip()

@@ -48,7 +48,6 @@ import net.wurstclient.util.EntityUtils;
 import net.wurstclient.util.FaceAimPoint;
 import net.wurstclient.util.PlaceRotationGuard;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"crystal aura"})
 public final class CrystalAuraHack extends Hack implements UpdateListener

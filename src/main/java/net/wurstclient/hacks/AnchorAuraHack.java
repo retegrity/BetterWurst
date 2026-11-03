@@ -45,7 +45,6 @@ import net.wurstclient.util.EntityUtils;
 import net.wurstclient.util.FaceAimPoint;
 import net.wurstclient.util.PlaceRotationGuard;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"anchor aura", "CrystalAura", "crystal aura"})
 public final class AnchorAuraHack extends Hack implements UpdateListener

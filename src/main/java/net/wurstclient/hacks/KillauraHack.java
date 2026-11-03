@@ -44,8 +44,8 @@ import net.wurstclient.util.RotationUtils;
 
 @SearchTags({"kill aura", "ForceField", "force field", "CrystalAura",
 	"crystal aura", "AutoCrystal", "auto crystal"})
-public final class KillauraHack extends Hack implements UpdateListener,
-	HandleInputListener, RenderListener
+public final class KillauraHack extends Hack
+	implements UpdateListener, HandleInputListener, RenderListener
 {
 	private final SliderSetting range = new SliderSetting("Attack range",
 		"Determines how far Killaura will reach to attack entities.\n"

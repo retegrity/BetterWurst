@@ -39,7 +39,6 @@ import net.wurstclient.util.BlockUtils;
 import net.wurstclient.util.FaceAimPoint;
 import net.wurstclient.util.PlaceRotationGuard;
 import net.wurstclient.util.Rotation;
-import net.wurstclient.util.RotationUtils;
 import net.wurstclient.util.JumpUtils;
 
 @SearchTags({"ScaffoldWalk", "scaffold walk", "bridge", "tower", "auto bridge"})
