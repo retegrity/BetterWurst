@@ -359,6 +359,10 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 		// change, so aim at a different spot and try again next tick
 		if(!rotationGuard.canPlace())
 		{
+			if(debug.isChecked())
+				LOGGER.info("t={} waiting: same yaw change as the last block",
+					player.tickCount);
+				
 			// in Stay mode, the same turn would just happen again, so aim at a
 			// random point next time
 			randomAimOnce = true;
@@ -369,7 +373,11 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 		selectSlot(player, blockSlot);
 		if(!BlockChainPlacer.place(hit,
 			() -> swingHand.swing(InteractionHand.MAIN_HAND)))
+		{
+			if(debug.isChecked())
+				LOGGER.info("t={} placing failed", player.tickCount);
 			return;
+		}
 		
 		rotationGuard.onPlaced();
 		aimPoint.next();
@@ -422,44 +430,38 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 		// alternating east and north faces when going north-east. Looking
 		// back along the diagonal points into both of them, but you walk
 		// right through the corners between the blocks, so that ray would
-		// cross the face right at its edge. The yaw is turned just enough
-		// that the ray crosses the face's plane inside the face, and the
-		// pitch so that it crosses at the middle of its height (going down
-		// from above it would hit the top of the block first).
+		// cross the face right at its edge. Straight bridges have the same
+		// problem when you drift a little to the side. So once you are past
+		// the face, the yaw is turned just enough that the ray crosses the
+		// face's plane inside the face, and the pitch so that it crosses at
+		// the middle of its height (going down from above it would hit the
+		// top of the block first, and Intave checks that the ray hits the
+		// clicked face first).
 		boolean diagonal = alignment > 0.5 && alignment <= 0.9;
-		float pitch;
-		if(diagonal)
+		boolean alongBridge = alignment > 0.9 || diagonal;
+		double outside = eyes.subtract(face).dot(normal);
+		double horizontal;
+		if(alongBridge && outside > 0.02)
 		{
-			double outside = eyes.subtract(face).dot(normal);
-			double horizontal = 0.05;
-			if(outside > 0.02)
-			{
-				yaw = getDiagonalYaw(yaw, eyes, face, normal, outside);
-				Vec3 lookH = new Rotation(yaw, 0).toLookVec();
-				horizontal = outside / -lookH.dot(normal);
-			}
+			yaw = getFaceYaw(yaw, eyes, face, normal, outside);
+			Vec3 lookH = new Rotation(yaw, 0).toLookVec();
+			horizontal = outside / -lookH.dot(normal);
 			
+		}else if(diagonal)
 			// not past the face yet, so look steeply down until you are
-			pitch = (float)Math.toDegrees(
-				Math.atan2(eyes.y - face.y, Math.max(horizontal, 0.05)));
-			
-		}else
-		{
-			// pitch towards the middle of the clicked face, not the middle of
-			// the block, so the ray hits that face first (Intave checks this)
-			double horizontal = Math.sqrt(
+			horizontal = 0.05;
+		else
+			horizontal = Math.sqrt(
 				Mth.square(face.x - eyes.x) + Mth.square(face.z - eyes.z));
-			pitch =
-				(float)Math.toDegrees(Math.atan2(eyes.y - face.y, horizontal));
-		}
+		
+		float pitch = (float)Math
+			.toDegrees(Math.atan2(eyes.y - face.y, Math.max(horizontal, 0.05)));
 		Vec3 look = new Rotation(yaw, pitch).toLookVec();
 		
 		// Placing along the bridge (straight or diagonally): keep this
 		// rotation even while the face isn't visible yet, instead of turning
 		// around to it and back (jitter). It hits the face once you have
 		// moved past it.
-		boolean alongBridge = alignment > 0.9 || diagonal;
-		
 		if(!alongBridge && BlockChainPlacer.getHitFrom(eyes, look, placement,
 			player.blockInteractionRange()) == null)
 			return null;
@@ -472,7 +474,7 @@ public final class ScaffoldHack extends Hack implements UpdateListener
 	 * travelled the given distance outside the face (along its normal),
 	 * crosses the face's plane at least 0.15 blocks inside its side edges.
 	 */
-	private float getDiagonalYaw(float yaw, Vec3 eyes, Vec3 face, Vec3 normal,
+	private float getFaceYaw(float yaw, Vec3 eyes, Vec3 face, Vec3 normal,
 		double outside)
 	{
 		// the horizontal axis along the face

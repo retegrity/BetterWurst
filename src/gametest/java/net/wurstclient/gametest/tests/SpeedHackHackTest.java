@@ -11,6 +11,7 @@ import java.util.ArrayList;
 
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 import net.wurstclient.gametest.SingleplayerTest;
 
@@ -68,6 +69,9 @@ public final class SpeedHackHackTest extends SingleplayerTest
 		// Clean up
 		context.waitFor(mc -> mc.player.onGround()
 			&& mc.player.getDeltaMovement().horizontalDistanceSqr() < 1e-6);
+		ServerPlayer player =
+			server.computeOnServer(s -> connection.getServerPlayer());
+		server.runOnServer(s -> player.getFoodData().setFoodLevel(20));
 		runCommand("gamemode creative");
 		context.waitFor(mc -> mc.player.getAbilities().instabuild);
 		runCommand("tp @s 0 -57 0 0 0");
