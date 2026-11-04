@@ -8,11 +8,14 @@
 package net.wurstclient.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.authlib.GameProfile;
 
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -21,8 +24,10 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import net.wurstclient.InputFaker;
 import net.wurstclient.InputFaker.TempRealInput;
 import net.wurstclient.WurstClient;
@@ -40,6 +45,11 @@ import net.wurstclient.util.JumpUtils;
 public abstract class LocalPlayerMixin extends AbstractClientPlayer
 	implements ILocalPlayer
 {
+	@Unique
+	private double wurstPrevMoveX;
+	@Unique
+	private double wurstPrevMoveZ;
+	
 	private LocalPlayerMixin(WurstClient wurst, ClientLevel world,
 		GameProfile profile)
 	{
@@ -144,6 +154,37 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 	{
 		return original && !WurstClient.INSTANCE.getHax().stepHack.isEnabled()
 			&& !WurstClient.INSTANCE.getCmds().goToCmd.isActive();
+	}
+	
+	/**
+	 * Lets SpeedHack's NCPHop mode replace the movement of this tick.
+	 */
+	@Inject(
+		method = "move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V",
+		at = @At("HEAD"))
+	private void onMove(MoverType type, Vec3 delta, CallbackInfo ci,
+		@Local(argsOnly = true) LocalRef<Vec3> deltaRef)
+	{
+		if(type != MoverType.SELF)
+			return;
+		
+		LocalPlayer player = (LocalPlayer)(Object)this;
+		wurstPrevMoveX = player.getX();
+		wurstPrevMoveZ = player.getZ();
+		deltaRef.set(WurstClient.INSTANCE.getHax().speedHackHack
+			.modifyMove(player, delta));
+	}
+	
+	@Inject(
+		method = "move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V",
+		at = @At("TAIL"))
+	private void afterMove(MoverType type, Vec3 delta, CallbackInfo ci)
+	{
+		if(type != MoverType.SELF)
+			return;
+		
+		WurstClient.INSTANCE.getHax().speedHackHack
+			.onMoved((LocalPlayer)(Object)this, wurstPrevMoveX, wurstPrevMoveZ);
 	}
 	
 	@Override
