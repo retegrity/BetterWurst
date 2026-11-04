@@ -38,7 +38,8 @@ public final class PlaceRotationGuard
 	
 	public boolean canPlace()
 	{
-		return !rotated || deltaYaw <= 2
+		// (NaN before the first block, where nothing can be repeated yet)
+		return !rotated || deltaYaw <= 2 || Float.isNaN(lastPlacedDeltaYaw)
 			|| Math.abs(deltaYaw - lastPlacedDeltaYaw) >= 0.001F;
 	}
 	
