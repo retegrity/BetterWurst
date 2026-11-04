@@ -207,7 +207,7 @@ public final class SpeedHackHack extends Hack
 	 * The speed that NoCheatPlus allows without hopping. Speed potions
 	 * raise it by 20% per level.
 	 */
-	private double getNcpBaseSpeed(LocalPlayer player)
+	public static double getNcpBaseSpeed(LocalPlayer player)
 	{
 		double base = player.isSprinting() ? NCP_SPRINT_SPEED : NCP_WALK_SPEED;
 		
@@ -218,7 +218,7 @@ public final class SpeedHackHack extends Hack
 		return base;
 	}
 	
-	private boolean canControlMovement(LocalPlayer player)
+	public static boolean canControlMovement(LocalPlayer player)
 	{
 		return !player.isInWater() && !player.isInLava()
 			&& !player.onClimbable() && !player.isFallFlying()
@@ -229,7 +229,7 @@ public final class SpeedHackHack extends Hack
 	 * The direction you are holding, as a unit vector, or null if you aren't
 	 * holding any movement keys.
 	 */
-	private Vec3 getInputDirection(LocalPlayer player)
+	public static Vec3 getInputDirection(LocalPlayer player)
 	{
 		float forward = player.zza;
 		float sideways = player.xxa;

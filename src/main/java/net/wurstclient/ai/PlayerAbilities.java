@@ -28,7 +28,7 @@ public record PlayerAbilities(boolean invulnerable, boolean creativeFlying,
 		boolean invulnerable =
 			mcAbilities.invulnerable || mcAbilities.instabuild;
 		boolean creativeFlying = mcAbilities.flying;
-		boolean flying = creativeFlying || hax.flightHack.isEnabled();
+		boolean flying = creativeFlying || hax.flightHack.isFlying();
 		boolean immuneToFallDamage = invulnerable || hax.noFallHack.isEnabled();
 		boolean noWaterSlowdown = hax.antiWaterPushHack.isPreventingSlowdown();
 		boolean jesus = hax.jesusHack.isEnabled();

@@ -182,7 +182,7 @@ public final class FightBotHack extends Hack
 			// control height if flying
 			if(!MC.player.onGround()
 				&& (MC.player.getAbilities().flying
-					|| WURST.getHax().flightHack.isEnabled())
+					|| WURST.getHax().flightHack.isFlying())
 				&& MC.player.distanceToSqr(entity.getX(), MC.player.getY(),
 					entity.getZ()) <= MC.player.distanceToSqr(MC.player.getX(),
 						entity.getY(), MC.player.getZ()))

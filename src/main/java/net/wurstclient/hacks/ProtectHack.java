@@ -252,7 +252,7 @@ public final class ProtectHack extends Hack
 			// control height if flying
 			if(!MC.player.onGround()
 				&& (MC.player.getAbilities().flying
-					|| WURST.getHax().flightHack.isEnabled())
+					|| WURST.getHax().flightHack.isFlying())
 				&& MC.player.distanceToSqr(target.getX(), MC.player.getY(),
 					target.getZ()) <= MC.player.distanceToSqr(MC.player.getX(),
 						target.getY(), MC.player.getZ()))

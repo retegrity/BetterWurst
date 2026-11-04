@@ -16,15 +16,31 @@ import net.wurstclient.events.IsPlayerInWaterListener;
 import net.wurstclient.events.MouseScrollListener;
 import net.wurstclient.events.UpdateListener;
 import net.wurstclient.hack.Hack;
+import net.wurstclient.hacks.flight.RewoundFlight;
 import net.wurstclient.mixinterface.IKeyMapping;
 import net.wurstclient.settings.CheckboxSetting;
+import net.wurstclient.settings.EnumSetting;
 import net.wurstclient.settings.SliderSetting;
 import net.wurstclient.settings.SliderSetting.ValueDisplay;
 
-@SearchTags({"FlyHack", "fly hack", "flying"})
+@SearchTags({"FlyHack", "fly hack", "flying", "NCP glide", "Rewound"})
 public final class FlightHack extends Hack implements UpdateListener,
 	IsPlayerInWaterListener, FlyingSpeedListener, MouseScrollListener
 {
+	private final EnumSetting<Mode> mode = new EnumSetting<>("Mode",
+		"\u00a7lVanilla\u00a7r lets you fly freely.\n\n"
+			+ "\u00a7lRewound\u00a7r glides just within NoCheatPlus' limits."
+			+ " Jump to take off, sneak to sink faster. Made for Rewound"
+			+ " (Hypixel 2020).",
+		Mode.values(), Mode.VANILLA);
+	
+	private final SliderSetting glideSpeed =
+		new SliderSetting("Glide speed (Rewound)",
+			"How fast Rewound mode sinks. You can glide until you are 1 block"
+				+ " below where you left the ground.",
+			0.001, RewoundFlight.MIN_GLIDE_SPEED, 0.05, 0.001,
+			ValueDisplay.DECIMAL.withSuffix(" blocks/tick"));
+	
 	private final SliderSetting horizontalSpeed = new SliderSetting(
 		"Horizontal speed", "description.wurst.setting.flight.horizontal_speed",
 		1, 0.05, 10, 0.05, ValueDisplay.DECIMAL);
@@ -60,12 +76,17 @@ public final class FlightHack extends Hack implements UpdateListener,
 			"description.wurst.setting.flight.anti-kick_distance", 0.035, 0.01,
 			0.2, 0.001, ValueDisplay.DECIMAL.withSuffix("m"));
 	
+	private final RewoundFlight rewound = new RewoundFlight();
+	
 	private int tickCounter = 0;
+	private boolean sinkFaster;
 	
 	public FlightHack()
 	{
 		super("Flight");
 		setCategory(Category.MOVEMENT);
+		addSetting(mode);
+		addSetting(glideSpeed);
 		addSetting(horizontalSpeed);
 		addSetting(verticalSpeed);
 		addSetting(allowUnsafeVerticalSpeed);
@@ -79,6 +100,17 @@ public final class FlightHack extends Hack implements UpdateListener,
 	@Override
 	public String getRenderName()
 	{
+		if(mode.getSelected() == Mode.REWOUND)
+		{
+			// how much height is left to glide
+			LocalPlayer player = MC.player;
+			if(player == null || player.onGround())
+				return getName() + " [Rewound]";
+			
+			return getName() + " [Rewound, "
+				+ String.format("%.2f", rewound.getGlideLeft(player)) + "]";
+		}
+		
 		if(!renderSpeed.isChecked())
 			return getName();
 		
@@ -90,6 +122,7 @@ public final class FlightHack extends Hack implements UpdateListener,
 	protected void onEnable()
 	{
 		tickCounter = 0;
+		rewound.reset();
 		
 		WURST.getHax().creativeFlightHack.setEnabled(false);
 		WURST.getHax().jetpackHack.setEnabled(false);
@@ -107,11 +140,18 @@ public final class FlightHack extends Hack implements UpdateListener,
 		EVENTS.remove(IsPlayerInWaterListener.class, this);
 		EVENTS.remove(FlyingSpeedListener.class, this);
 		EVENTS.remove(MouseScrollListener.class, this);
+		rewound.reset();
 	}
 	
 	@Override
 	public void onUpdate()
 	{
+		if(!isVanilla())
+		{
+			updateSinkFaster();
+			return;
+		}
+		
 		LocalPlayer player = MC.player;
 		player.setDeltaMovement(Vec3.ZERO);
 		player.getAbilities().flying = false;
@@ -140,7 +180,7 @@ public final class FlightHack extends Hack implements UpdateListener,
 	@Override
 	public void onGetFlyingSpeed(FlyingSpeedEvent event)
 	{
-		if(WURST.getHax().freecamHack.isMovingCamera())
+		if(!isVanilla() || WURST.getHax().freecamHack.isMovingCamera())
 			return;
 		
 		event.setSpeed(horizontalSpeed.getValueF());
@@ -160,7 +200,7 @@ public final class FlightHack extends Hack implements UpdateListener,
 	
 	public boolean isControllingScrollEvents()
 	{
-		return isEnabled() && scrollToChangeSpeed.isChecked()
+		return isVanilla() && scrollToChangeSpeed.isChecked()
 			&& MC.gui.screen() == null
 			&& !WURST.getOtfs().zoomOtf.isControllingScrollEvents()
 			&& !WURST.getHax().freecamHack.isMovingCamera();
@@ -194,7 +234,77 @@ public final class FlightHack extends Hack implements UpdateListener,
 	@Override
 	public void onIsPlayerInWater(IsPlayerInWaterEvent event)
 	{
-		event.setInWater(false);
+		if(isVanilla())
+			event.setInWater(false);
+	}
+	
+	/**
+	 * Whether Flight is making you fly freely. Rewound mode doesn't, so
+	 * other hacks should treat you as walking.
+	 */
+	public boolean isFlying()
+	{
+		return isVanilla();
+	}
+	
+	private boolean isVanilla()
+	{
+		return isEnabled() && mode.getSelected() == Mode.VANILLA;
+	}
+	
+	private boolean isRewound()
+	{
+		return isEnabled() && mode.getSelected() == Mode.REWOUND;
+	}
+	
+	/**
+	 * In Rewound mode, sneaking in the air sinks faster instead.
+	 */
+	private void updateSinkFaster()
+	{
+		sinkFaster = false;
+		if(MC.player.onGround()
+			|| !IKeyMapping.get(MC.options.keyShift).isActuallyDown())
+			return;
+		
+		MC.options.keyShift.setDown(false);
+		
+		// isActuallyDown() ignores open screens, so check for those here
+		sinkFaster = MC.gui.screen() == null;
+	}
+	
+	/**
+	 * Lets Rewound mode replace the movement of this tick. Called by
+	 * LocalPlayerMixin right before you move.
+	 */
+	public Vec3 modifyMove(LocalPlayer player, Vec3 delta)
+	{
+		if(!isRewound())
+		{
+			rewound.reset();
+			return delta;
+		}
+		
+		return rewound.modifyMove(player, delta, glideSpeed.getValue(),
+			sinkFaster);
+	}
+	
+	/**
+	 * Called by LocalPlayerMixin right after you moved.
+	 */
+	public void onMoved(LocalPlayer player)
+	{
+		if(isRewound())
+			rewound.onMoved(player);
+	}
+	
+	/**
+	 * Whether Rewound mode is controlling your movement, in which case
+	 * SpeedHack shouldn't.
+	 */
+	public boolean isControllingMovement()
+	{
+		return isRewound() && rewound.isControlling();
 	}
 	
 	public double getHorizontalSpeed()
@@ -209,5 +319,24 @@ public final class FlightHack extends Hack implements UpdateListener,
 		
 		return Math.clamp(horizontalSpeed.getValue() * verticalSpeed.getValue(),
 			0.05, limitVerticalSpeed ? 3.95 : 10);
+	}
+	
+	private enum Mode
+	{
+		VANILLA("Vanilla"),
+		REWOUND("Rewound");
+		
+		private final String name;
+		
+		private Mode(String name)
+		{
+			this.name = name;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return name;
+		}
 	}
 }
