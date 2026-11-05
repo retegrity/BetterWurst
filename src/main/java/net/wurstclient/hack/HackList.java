@@ -147,6 +147,7 @@ public final class HackList implements UpdateListener
 	public final MovementFixHack movementFixHack = new MovementFixHack();
 	public final MultiActionsHack multiActionsHack = new MultiActionsHack();
 	public final MultiAuraHack multiAuraHack = new MultiAuraHack();
+	public final MultiBreakHack multiBreakHack = new MultiBreakHack();
 	public final NameProtectHack nameProtectHack = new NameProtectHack();
 	public final NameTagsHack nameTagsHack = new NameTagsHack();
 	public final NavigatorHack navigatorHack = new NavigatorHack();

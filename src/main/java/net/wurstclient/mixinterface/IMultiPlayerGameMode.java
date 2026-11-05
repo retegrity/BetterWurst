@@ -39,6 +39,15 @@ public interface IMultiPlayerGameMode
 		ServerboundPlayerActionPacket.Action action, BlockPos blockPos,
 		Direction direction);
 	
+	/**
+	 * Breaks the block on your side and sends the packet that makes the
+	 * server break it, like vanilla does when you finish mining a block.
+	 * If the server disagrees, it puts the block back.
+	 */
+	public void destroyBlockWithPacket(
+		ServerboundPlayerActionPacket.Action action, BlockPos blockPos,
+		Direction direction);
+	
 	public void sendPlayerInteractBlockPacket(InteractionHand hand,
 		BlockHitResult blockHitResult);
 }

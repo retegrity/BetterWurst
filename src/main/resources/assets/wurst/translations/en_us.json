@@ -270,6 +270,7 @@
   "description.wurst.hack.movementfix": "Makes your movement match your server-side rotation while hacks like Killaura or Scaffold turn your head.\nHelps against anti-cheat plugins like Grim.",
   "description.wurst.hack.multiactions": "Lets the player use 2 items at the same time, e.g. swing while blocking with a shield.",
   "description.wurst.hack.multiaura": "Faster Killaura that attacks multiple entities at once.",
+  "description.wurst.hack.multibreak": "Breaks a 3x3 area around every block that you mine, like a drill. The area is vertical, facing the direction you look.\n\nOnly breaks the surrounding blocks that your tool is made for and that you can mine instantly (or almost instantly, like stone with an Efficiency V pickaxe). Sneak to mine a single block.",
   "description.wurst.hack.nameprotect": "Hides all player names.",
   "description.wurst.hack.nametags": "Changes the scale of the nametags so you can always read them. Also allows you to see the nametags of sneaking players.",
   "description.wurst.hack.navigator": "A searchable GUI that learns your preferences over time.",
