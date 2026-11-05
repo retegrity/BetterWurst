@@ -164,7 +164,8 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 	}
 	
 	/**
-	 * Lets SpeedHack's NCPHop mode replace the movement of this tick.
+	 * Lets Flight's Rewound mode and SpeedHack's NCPHop mode replace the
+	 * movement of this tick.
 	 */
 	@Inject(
 		method = "move(Lnet/minecraft/world/entity/MoverType;Lnet/minecraft/world/phys/Vec3;)V",
@@ -178,8 +179,11 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 		LocalPlayer player = (LocalPlayer)(Object)this;
 		wurstPrevMoveX = player.getX();
 		wurstPrevMoveZ = player.getZ();
-		deltaRef.set(WurstClient.INSTANCE.getHax().speedHackHack
-			.modifyMove(player, delta));
+		HackList hax = WurstClient.INSTANCE.getHax();
+		Vec3 move = hax.flightHack.modifyMove(player, delta);
+		if(!hax.flightHack.isControllingMovement())
+			move = hax.speedHackHack.modifyMove(player, move);
+		deltaRef.set(move);
 	}
 	
 	@Inject(
@@ -190,8 +194,10 @@ public abstract class LocalPlayerMixin extends AbstractClientPlayer
 		if(type != MoverType.SELF)
 			return;
 		
-		WurstClient.INSTANCE.getHax().speedHackHack
-			.onMoved((LocalPlayer)(Object)this, wurstPrevMoveX, wurstPrevMoveZ);
+		LocalPlayer player = (LocalPlayer)(Object)this;
+		HackList hax = WurstClient.INSTANCE.getHax();
+		hax.speedHackHack.onMoved(player, wurstPrevMoveX, wurstPrevMoveZ);
+		hax.flightHack.onMoved(player);
 	}
 	
 	@Override

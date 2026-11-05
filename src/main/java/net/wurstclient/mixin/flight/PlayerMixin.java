@@ -27,7 +27,6 @@ public abstract class PlayerMixin
 		if((Object)this != WurstClient.MC.player)
 			return original;
 		
-		return original
-			&& !WurstClient.INSTANCE.getHax().flightHack.isEnabled();
+		return original && !WurstClient.INSTANCE.getHax().flightHack.isFlying();
 	}
 }

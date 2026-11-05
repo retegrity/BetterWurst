@@ -141,6 +141,7 @@ public class WurstTest implements FabricClientGameTest
 		new ChestEspGroupTest(context, spContext).run();
 		new ChestEspRenderingTest(context, spContext).run();
 		new FastLungeHackTest(context, spContext).run();
+		new FlightHackTest(context, spContext).run();
 		new FreecamHackTest(context, spContext).run();
 		new JumpResetHackTest(context, spContext).run();
 		new LsdHackTest(context, spContext).run();
