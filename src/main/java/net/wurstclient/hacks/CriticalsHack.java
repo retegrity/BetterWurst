@@ -86,7 +86,7 @@ public final class CriticalsHack extends Hack
 		if(player.isInWater() || player.isInLava() || player.onClimbable()
 			|| player.isFallFlying() || player.isPassenger()
 			|| player.getAbilities().flying
-			|| WURST.getHax().flightHack.isEnabled())
+			|| WURST.getHax().flightHack.isFlying())
 			return false;
 		
 		// already falling -> critical hit is possible
@@ -150,7 +150,7 @@ public final class CriticalsHack extends Hack
 	{
 		LocalPlayer player = MC.player;
 		
-		if(WURST.getHax().flightHack.isEnabled())
+		if(WURST.getHax().flightHack.isFlying())
 			return false;
 		
 		if(WURST.getHax().jesusHack.isEnabled()

@@ -226,7 +226,7 @@ public final class SneakHack extends Hack
 		if(MC.player.getAbilities().flying)
 			return true;
 		
-		if(WURST.getHax().flightHack.isEnabled())
+		if(WURST.getHax().flightHack.isFlying())
 			return true;
 		
 		if(WURST.getHax().freecamHack.isEnabled())
