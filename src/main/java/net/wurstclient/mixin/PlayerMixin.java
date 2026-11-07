@@ -61,4 +61,21 @@ public abstract class PlayerMixin
 			.shouldKeepSprint(player))
 			original.call(player, sprinting);
 	}
+	
+	/**
+	 * Lets AirBreak mine as fast in the air as on the ground.
+	 */
+	@WrapOperation(
+		method = "getDestroySpeed(Lnet/minecraft/world/level/block/state/BlockState;)F",
+		at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/entity/player/Player;onGround()Z"))
+	private boolean wrapDestroySpeedOnGround(Player player,
+		Operation<Boolean> original)
+	{
+		if(player == WurstClient.MC.player
+			&& WurstClient.INSTANCE.getHax().airBreakHack.isActive())
+			return true;
+		
+		return original.call(player);
+	}
 }

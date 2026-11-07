@@ -29,6 +29,7 @@ import net.wurstclient.util.json.JsonException;
 public final class HackList implements UpdateListener
 {
 	public final AimAssistHack aimAssistHack = new AimAssistHack();
+	public final AirBreakHack airBreakHack = new AirBreakHack();
 	public final AirJumpHack airJumpHack = new AirJumpHack();
 	public final AirPlaceHack airPlaceHack = new AirPlaceHack();
 	public final AirStuckHack airStuckHack = new AirStuckHack();
