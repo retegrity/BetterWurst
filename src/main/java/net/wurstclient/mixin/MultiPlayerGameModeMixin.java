@@ -55,6 +55,56 @@ public abstract class MultiPlayerGameModeMixin implements IMultiPlayerGameMode
 	@Unique
 	private int lastAttackTick = -1;
 	
+	@Unique
+	private boolean brokeBlock;
+	
+	@Inject(method = "destroyBlock(Lnet/minecraft/core/BlockPos;)Z",
+		at = @At("HEAD"))
+	private void onDestroyBlock(BlockPos pos,
+		CallbackInfoReturnable<Boolean> cir)
+	{
+		// MultiBreak's own blocks shouldn't count as mined blocks
+		if(!WurstClient.INSTANCE.getHax().multiBreakHack.isBreakingArea())
+			brokeBlock = true;
+	}
+	
+	/**
+	 * Lets MultiBreak break the blocks around a block that you broke
+	 * instantly.
+	 */
+	@Inject(
+		method = "startDestroyBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
+		at = @At("RETURN"))
+	private void afterStartDestroyBlock(BlockPos pos, Direction direction,
+		CallbackInfoReturnable<Boolean> cir)
+	{
+		afterMining(pos, direction);
+	}
+	
+	@Inject(
+		method = "continueDestroyBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
+		at = @At("RETURN"))
+	private void afterContinueDestroyBlock(BlockPos pos, Direction direction,
+		CallbackInfoReturnable<Boolean> cir)
+	{
+		afterMining(pos, direction);
+	}
+	
+	/**
+	 * Tells MultiBreak about a block that was broken during this call, after
+	 * its packet has been sent.
+	 */
+	@Unique
+	private void afterMining(BlockPos pos, Direction direction)
+	{
+		if(!brokeBlock)
+			return;
+		
+		brokeBlock = false;
+		WurstClient.INSTANCE.getHax().multiBreakHack.onBlockMined(pos,
+			direction);
+	}
+	
 	@Inject(
 		method = "continueDestroyBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)Z",
 		at = @At(value = "INVOKE",
@@ -178,6 +228,17 @@ public abstract class MultiPlayerGameModeMixin implements IMultiPlayerGameMode
 	}
 	
 	@Override
+	public void destroyBlockWithPacket(Action action, BlockPos blockPos,
+		Direction direction)
+	{
+		startPrediction(minecraft.level, i -> {
+			destroyBlock(blockPos);
+			return new ServerboundPlayerActionPacket(action, blockPos,
+				direction, i);
+		});
+	}
+	
+	@Override
 	public void sendPlayerInteractBlockPacket(InteractionHand hand,
 		BlockHitResult blockHitResult)
 	{
@@ -191,6 +252,9 @@ public abstract class MultiPlayerGameModeMixin implements IMultiPlayerGameMode
 	{
 		
 	}
+	
+	@Shadow
+	public abstract boolean destroyBlock(BlockPos pos);
 	
 	@Shadow
 	public abstract InteractionResult useItemOn(LocalPlayer player,
