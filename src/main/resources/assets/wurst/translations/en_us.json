@@ -241,6 +241,7 @@
   "description.wurst.hack.invwalk": "Allows you to move around while the inventory is open.",
   "description.wurst.setting.invwalk.allow_clickgui": "Allows you to move around while Wurst's ClickGUI is open.",
   "description.wurst.setting.invwalk.allow_other": "Allows you to move around while other in-game screens are open (e.g. chest, horse, villager trading), unless the screen has a text box.",
+  "description.wurst.setting.invwalk.grim_mode": "Stops you for a tick when you click in an inventory while moving, so that Grim doesn't cancel the click.",
   "description.wurst.hack.itemesp": "Highlights nearby items.",
   "description.wurst.hack.itemgenerator": "Generates random items and drops them on the ground.\n§oCreative mode only.§r",
   "description.wurst.hack.jesus": "Allows you to walk on water.\nJesus used this hack ~2000 years ago.",
