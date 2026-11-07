@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -41,6 +42,7 @@ import net.wurstclient.events.HandleBlockBreakingListener.HandleBlockBreakingEve
 import net.wurstclient.events.HandleInputListener.HandleInputEvent;
 import net.wurstclient.events.LeftClickListener.LeftClickEvent;
 import net.wurstclient.events.RightClickListener.RightClickEvent;
+import net.wurstclient.hacks.MultiBreakHack;
 import net.wurstclient.mixinterface.ILocalPlayer;
 import net.wurstclient.mixinterface.IMinecraft;
 import net.wurstclient.mixinterface.IMultiPlayerGameMode;
@@ -217,6 +219,41 @@ public abstract class MinecraftMixin
 			return;
 		
 		WurstClient.INSTANCE.getFriends().middleClick(hit.getEntity());
+	}
+	
+	/**
+	 * Tells MultiBreak which blocks you mine yourself.
+	 */
+	@WrapMethod(method = "startAttack()Z")
+	private boolean wrapStartAttack(Operation<Boolean> original)
+	{
+		MultiBreakHack multiBreak =
+			WurstClient.INSTANCE.getHax().multiBreakHack;
+		multiBreak.beginPlayerMining();
+		try
+		{
+			return original.call();
+			
+		}finally
+		{
+			multiBreak.endPlayerMining();
+		}
+	}
+	
+	@WrapMethod(method = "continueAttack(Z)V")
+	private void wrapContinueAttack(boolean down, Operation<Void> original)
+	{
+		MultiBreakHack multiBreak =
+			WurstClient.INSTANCE.getHax().multiBreakHack;
+		multiBreak.beginPlayerMining();
+		try
+		{
+			original.call(down);
+			
+		}finally
+		{
+			multiBreak.endPlayerMining();
+		}
 	}
 	
 	/**

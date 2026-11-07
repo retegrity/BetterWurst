@@ -133,6 +133,7 @@ public class WurstTest implements FabricClientGameTest
 		// TODO: Open ClickGUI and Navigator
 		
 		// Test Wurst hacks
+		new AirBreakHackTest(context, spContext).run();
 		new AntiWobbleHackTest(context, spContext).run();
 		new AutoSprintHackTest(context, spContext).run();
 		new AutoMineHackTest(context, spContext).run();
@@ -144,7 +145,9 @@ public class WurstTest implements FabricClientGameTest
 		new FlightHackTest(context, spContext).run();
 		new FreecamHackTest(context, spContext).run();
 		new JumpResetHackTest(context, spContext).run();
+		new KeepSprintHackTest(context, spContext).run();
 		new LsdHackTest(context, spContext).run();
+		new MultiBreakHackTest(context, spContext).run();
 		new NoFallHackTest(context, spContext).run();
 		new LowShieldHackTest(context, spContext).run();
 		new NoWeatherHackTest(context, spContext).run();

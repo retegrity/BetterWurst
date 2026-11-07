@@ -99,13 +99,23 @@ public final class AutoMineHack extends Hack
 			// This case doesn't cancel block breaking in vanilla Minecraft.
 			return;
 		
-		if(!im.isDestroying())
-			im.startDestroyBlock(pos, side);
-		
-		if(im.continueDestroyBlock(pos, side))
+		// MultiBreak counts AutoMine as your own mining
+		MultiBreakHack multiBreak = WURST.getHax().multiBreakHack;
+		multiBreak.beginPlayerMining();
+		try
 		{
-			AttackSwing.CLIENT.swing();
-			MC.options.keyAttack.setDown(true);
+			if(!im.isDestroying())
+				im.startDestroyBlock(pos, side);
+			
+			if(im.continueDestroyBlock(pos, side))
+			{
+				AttackSwing.CLIENT.swing();
+				MC.options.keyAttack.setDown(true);
+			}
+			
+		}finally
+		{
+			multiBreak.endPlayerMining();
 		}
 	}
 	
