@@ -31,7 +31,7 @@ public abstract class EntityMixin
 			return;
 		
 		HackList hax = WurstClient.INSTANCE.getHax();
-		if(hax == null || !hax.noSlowdownHack.isEnabled())
+		if(hax == null || !hax.noSlowdownHack.shouldCancelBlockSlowdown())
 			return;
 		
 		if(cir.getReturnValueF() < 1)
