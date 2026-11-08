@@ -297,6 +297,7 @@
   "description.wurst.hack.nopumpkin": "Blocks the overlay when wearing a pumpkin on your head.",
   "description.wurst.hack.lowshield": "Lowers the shield so it covers less of your screen.",
   "description.wurst.hack.noslowdown": "Cancels slowness effects caused by honey, soul sand and using items.",
+  "description.wurst.setting.noslowdown.grim_mode": "Only cancels the slowdown from using items, and only on every other tick, so that Grim doesn't flag it.",
   "description.wurst.hack.novignette": "Removes the vignette effect (darkening of the screen edges).",
   "description.wurst.hack.noweather": "Allows you to alter the client-side weather, time and moon phase.",
   "description.wurst.hack.noweb": "Prevents you from getting slowed down by cobwebs.",
