@@ -29,7 +29,7 @@ public abstract class LocalPlayerMixin
 	private boolean wrapAiStepItemUse(LocalPlayer instance,
 		Operation<Boolean> original)
 	{
-		if(WurstClient.INSTANCE.getHax().noSlowdownHack.isEnabled())
+		if(WurstClient.INSTANCE.getHax().noSlowdownHack.shouldKeepSprinting())
 			return false;
 		
 		return original.call(instance);
@@ -46,7 +46,8 @@ public abstract class LocalPlayerMixin
 	private boolean wrapModifyInputItemUse(LocalPlayer instance,
 		Operation<Boolean> original)
 	{
-		if(WurstClient.INSTANCE.getHax().noSlowdownHack.isEnabled())
+		if(WurstClient.INSTANCE.getHax().noSlowdownHack
+			.shouldCancelItemSlowdown())
 			return false;
 		
 		return original.call(instance);
@@ -62,7 +63,7 @@ public abstract class LocalPlayerMixin
 	private boolean wrapCanStartSprintingItemUse(LocalPlayer instance,
 		Operation<Boolean> original)
 	{
-		if(WurstClient.INSTANCE.getHax().noSlowdownHack.isEnabled())
+		if(WurstClient.INSTANCE.getHax().noSlowdownHack.shouldKeepSprinting())
 			return false;
 		
 		return original.call(instance);
