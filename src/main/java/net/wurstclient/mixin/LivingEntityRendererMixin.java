@@ -38,12 +38,8 @@ public abstract class LivingEntityRendererMixin
 		float yaw = hack.getRenderYaw(partialTicks);
 		float pitch = hack.getRenderPitch(partialTicks);
 		
-		// keep the body within vanilla's 75° head-turn limit
-		float diff = Mth.wrapDegrees(yaw - state.bodyRot);
-		if(diff > 75F)
-			state.bodyRot = yaw - 75F;
-		else if(diff < -75F)
-			state.bodyRot = yaw + 75F;
+		// the body as vanilla would turn it with this rotation
+		state.bodyRot = hack.getRenderBodyYaw(partialTicks);
 		
 		// yRot in the render state is head yaw relative to the body
 		state.yRot = Mth.wrapDegrees(yaw - state.bodyRot);
