@@ -140,6 +140,10 @@ public final class InvWalkHack extends Hack
 			&& !(packet instanceof ServerboundContainerClosePacket))
 			return;
 		
+		// XCarry doesn't send this one at all
+		if(WURST.getHax().xCarryHack.isInventoryClose(packet))
+			return;
+		
 		// keep them in order
 		if(heldPackets.isEmpty() && InventoryUtils.isStandingStill())
 			return;
